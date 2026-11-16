@@ -4473,13 +4473,13 @@ function Library:CreateWindow(...)
                 Tabboxes = {};
             };
             local Button = Library:Create('Frame', {
-                BackgroundColor3 = Library.MainColor;
+                BackgroundColor3 = Library.BackgroundColor;
                 BorderColor3 = Color3.new(0, 0, 0);
                 Size = UDim2.fromOffset(Library:GetTextBounds(Name, Library.Font, Library.FontSize) + 16, 24);
                 ZIndex = 5;
                 Parent = Tab.SubTabBarInner;
             });
-            Library:AddToRegistry(Button, { BackgroundColor3 = 'MainColor' });
+            Library:AddToRegistry(Button, { BackgroundColor3 = 'BackgroundColor' });
             local ButtonLabel = Library:CreateLabel({
                 Size = UDim2.new(1, 0, 1, 0);
                 Text = Name;
