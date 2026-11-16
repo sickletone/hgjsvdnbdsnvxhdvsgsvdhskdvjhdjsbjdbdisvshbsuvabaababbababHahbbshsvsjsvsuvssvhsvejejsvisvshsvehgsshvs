@@ -29,11 +29,13 @@ Library.NotifySide = "Left"
 -- Window options:
 -- Center     -> center the menu on screen
 -- AutoShow   -> show the menu as soon as it is created
+-- Suffix     -> accent-colored title/watermark suffix (defaults to ".lua")
 -- Resizable  -> adds edge resize handles and the corner grip
 -- Scale      -> optional per-window DPI (defaults to Library.Scale)
 -- Position / Size are also accepted and are not required.
 local Window = Library:CreateWindow({
 	Title = "silly | Example",
+	Suffix = ".lua",
 	Center = true,
 	AutoShow = true,
 	Resizable = true,
@@ -676,18 +678,6 @@ WatermarkToggle = MenuGroup:AddToggle("ShowWatermark", {
 	end,
 })
 
--- Live suffix used by window titles and the watermark.
-MenuGroup:AddInput("MenuSuffix", {
-	Text = "Title / watermark suffix",
-	Default = Library.Suffix or ".lua",
-	Placeholder = ".lua",
-	Finished = false,
-	Tooltip = "Accent-colored suffix used by window titles and the watermark",
-	Callback = function(Value)
-		Library:SetSuffix(Value)
-	end,
-})
-
 MenuGroup:AddDivider()
 MenuGroup:AddLabel("Menu bind"):AddKeyPicker("MenuKeybind", {
 	Default = "RightShift",
@@ -720,6 +710,17 @@ MenuGroup:AddButton("Unload", function()
 	Library:Unload()
 end)
 
+local LoadingGroup = Tabs["UI Settings"]:AddLeftGroupbox("Loading")
+
+LoadingGroup:AddToggle("SilentLoad", {
+	Text = "Silent Load",
+	Default = Library.SilentLoad,
+	Tooltip = "Suppress notifications and keep the menu hidden while loading configs",
+	Callback = function(Value)
+		Library:SetSilentLoad(Value)
+	end,
+})
+
 Library.ToggleKeybind = Options.MenuKeybind
 
 -- Addons:
@@ -728,7 +729,7 @@ Library.ToggleKeybind = Options.MenuKeybind
 ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
 SaveManager:IgnoreThemeSettings()
-SaveManager:SetIgnoreIndexes({ "MenuKeybind", "MenuDPI", "MenuSuffix" })
+SaveManager:SetIgnoreIndexes({ "MenuKeybind", "MenuDPI" })
 ThemeManager:SetFolder("silly.lua")
 SaveManager:SetFolder("silly.lua/example")
 ThemeManager:ApplyToTab(Tabs["UI Settings"])

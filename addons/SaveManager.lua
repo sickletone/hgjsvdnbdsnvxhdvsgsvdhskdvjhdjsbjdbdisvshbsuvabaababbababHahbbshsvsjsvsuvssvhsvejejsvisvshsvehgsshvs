@@ -217,6 +217,30 @@ function SaveManager:Load(Name)
         return false, 'decode error'
     end
 
+    if self.Library then
+        if self.Library.SilentLoad then
+            if self.Library.SetMenuVisible then
+                self.Library:SetMenuVisible(false)
+            end
+        else
+            for _, Entry in next, Data.objects do
+                if type(Entry) == 'table' and Entry.type == 'Toggle' and Entry.idx == 'SilentLoad' and Entry.value == true then
+                    if self.Library.SetSilentLoad then
+                        self.Library:SetSilentLoad(true)
+                    else
+                        self.Library.SilentLoad = true
+                    end
+
+                    if self.Library.SetMenuVisible then
+                        self.Library:SetMenuVisible(false)
+                    end
+
+                    break
+                end
+            end
+        end
+    end
+
     for _, Entry in next, Data.objects do
         if type(Entry) == 'table' and self.Parser[Entry.type] and Entry.idx then
             task.spawn(function()
@@ -224,6 +248,12 @@ function SaveManager:Load(Name)
             end)
         end
     end
+
+    task.defer(function()
+        if self.Library and self.Library.SilentLoad and self.Library.SetMenuVisible then
+            self.Library:SetMenuVisible(false)
+        end
+    end)
 
     return true
 end

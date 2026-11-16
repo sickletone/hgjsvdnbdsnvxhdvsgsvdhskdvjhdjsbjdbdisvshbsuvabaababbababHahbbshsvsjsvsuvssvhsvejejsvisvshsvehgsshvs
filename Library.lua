@@ -83,6 +83,7 @@ local Library = {
     Toggled = false;
     WireframeDrag = false;
     Locked = false;
+    SilentLoad = false;
     ShowCustomCursor = true;
     UnlockMouseWhileOpen = true;
     ShowToggleFrameInKeybinds = true;
@@ -4027,6 +4028,22 @@ function Library:SetSuffix(Suffix)
     Library:RefreshSuffixes();
 end;
 
+function Library:SetSilentLoad(Enabled)
+    Library.SilentLoad = not not Enabled;
+end;
+
+function Library:SetMenuVisible(Visible)
+    if Library.Unloaded then
+        return;
+    end
+
+    for _, Window in next, Library.Windows do
+        if not Window.Mini then
+            Window:SetVisible(Visible);
+        end
+    end
+end;
+
 do
     local Frames, FPS, Last = 0, 0, os.clock();
     local Ping = 0;
@@ -4069,7 +4086,7 @@ do
     end);
 end;
 function Library:Notify(Text, Time, SoundId)
-    if Library.Unloaded or not Library.NotificationArea then
+    if Library.Unloaded or Library.SilentLoad or not Library.NotificationArea then
         return;
     end
 
@@ -4240,6 +4257,9 @@ function Library:CreateWindow(...)
 
     if type(Config.Title) ~= 'string' then
         Config.Title = 'silly'
+    end
+    if not Mini and (type(Config.Suffix) == 'string' or Config.Suffix == false) then
+        Library:SetSuffix(Config.Suffix);
     end
     if type(Config.TabPadding) ~= 'number' then Config.TabPadding = 0 end
     if type(Config.MenuFadeTime) ~= 'number' then Config.MenuFadeTime = 0.2 end
@@ -5229,9 +5249,9 @@ function Library:CreateWindow(...)
         end
     end))
 
-    if Config.AutoShow then task.spawn(Library.Toggle) end
+    if Config.AutoShow and not Library.SilentLoad then task.spawn(Library.Toggle) end
     else
-        if Config.AutoShow then Window:SetVisible(true) end
+        if Config.AutoShow and not Library.SilentLoad then Window:SetVisible(true) end
     end
 
     Window.Holder = Outer;
