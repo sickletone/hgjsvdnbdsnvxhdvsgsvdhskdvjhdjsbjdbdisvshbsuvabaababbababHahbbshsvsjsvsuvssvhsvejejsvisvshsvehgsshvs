@@ -707,6 +707,13 @@ function Library:UpdateColorsUsingRegistry()
 end;
 
 function Library:GiveSignal(Signal)
+    if Library.Unloaded then
+        pcall(function()
+            Signal:Disconnect();
+        end);
+        return;
+    end
+
     table.insert(Library.Signals, Signal)
 end
 
@@ -800,6 +807,10 @@ function Library:Unload()
 end
 
 function Library:OnUnload(Callback)
+    if Library.Unloaded then
+        return;
+    end
+
     Library.OnUnload = Callback
 end
 
