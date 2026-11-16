@@ -34,7 +34,7 @@ ScreenGui.Name = 'angel';
 ScreenGui.IgnoreGuiInset = true;
 ScreenGui.ResetOnSpawn = false;
 ScreenGui.DisplayOrder = 999;
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global;
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling;
 ScreenGui.Parent = GetGuiParent();
 
 local Toggles = {};
@@ -286,17 +286,15 @@ function Library:MakeDraggable(Instance, Cutoff, IsWindow, MoveTarget)
             return;
         end
 
-        if (Input.Position.Y - Instance.AbsolutePosition.Y) > (Cutoff or 40) then
+        local StartPos = Target.Position;
+        local DragStart = Input.Position;
+
+        if (DragStart.Y - Instance.AbsolutePosition.Y) > (Cutoff or 40) then
             return;
         end
 
-        local Absolute = Target.AbsolutePosition;
-        Target.AnchorPoint = Vector2.zero;
-        Target.Position = UDim2.fromOffset(Absolute.X, Absolute.Y);
-
-        local GrabX = Input.Position.X - Absolute.X;
-        local GrabY = Input.Position.Y - Absolute.Y;
-
+        local HasMoved = false;
+        local Wireframe = nil;
         local ChangedConn, EndedConn;
 
         ChangedConn = InputService.InputChanged:Connect(function(Change)
@@ -304,13 +302,52 @@ function Library:MakeDraggable(Instance, Cutoff, IsWindow, MoveTarget)
                 return;
             end
 
-            Target.Position = UDim2.fromOffset(Change.Position.X - GrabX, Change.Position.Y - GrabY);
+            local Delta = Change.Position - DragStart;
+
+            if IsWindow and Library.WireframeDrag then
+                if not HasMoved and Delta.Magnitude > 2 then
+                    HasMoved = true;
+                    Wireframe = Library:Create('Frame', {
+                        Size = Target.Size;
+                        Position = Target.Position;
+                        AnchorPoint = Target.AnchorPoint;
+                        BackgroundTransparency = 1;
+                        Active = false;
+                        ZIndex = 100000;
+                        Parent = ScreenGui;
+                    });
+                    Library:Create('UIStroke', {
+                        Color = Library.AccentColor;
+                        Thickness = 1;
+                        ApplyStrokeMode = Enum.ApplyStrokeMode.Border;
+                        Parent = Wireframe;
+                    });
+                end
+
+                if HasMoved and Wireframe then
+                    Wireframe.Position = UDim2.new(
+                        StartPos.X.Scale, StartPos.X.Offset + Delta.X,
+                        StartPos.Y.Scale, StartPos.Y.Offset + Delta.Y
+                    );
+                end
+            else
+                Target.Position = UDim2.new(
+                    StartPos.X.Scale, StartPos.X.Offset + Delta.X,
+                    StartPos.Y.Scale, StartPos.Y.Offset + Delta.Y
+                );
+            end
         end);
 
         EndedConn = InputService.InputEnded:Connect(function(EndInput)
             if EndInput == Input or EndInput.UserInputType == Enum.UserInputType.Touch then
                 ChangedConn:Disconnect();
                 EndedConn:Disconnect();
+
+                if IsWindow and Library.WireframeDrag and HasMoved and Wireframe then
+                    Target.Position = Wireframe.Position;
+                    Wireframe:Destroy();
+                    Wireframe = nil;
+                end
             end
         end);
     end);
@@ -947,9 +984,27 @@ do
             ZIndex = 15;
             Parent = ScreenGui,
         });
-        DisplayFrame:GetPropertyChangedSignal('AbsolutePosition'):Connect(function()
-            PickerFrameOuter.Position = UDim2.fromOffset(DisplayFrame.AbsolutePosition.X, DisplayFrame.AbsolutePosition.Y + 18);
-        end)
+        local PickerScale = InputService.TouchEnabled and 0.7 or 1;
+        local PickerWidth = 230 * PickerScale;
+        local PickerHeight = (Info.Transparency and 271 or 253) * PickerScale;
+        Library:Create('UIScale', {
+            Scale = PickerScale;
+            Parent = PickerFrameOuter;
+        });
+        local function UpdatePickerPosition()
+            local Camera = workspace.CurrentCamera;
+            local Viewport = (Camera and Camera.ViewportSize) or Vector2.new(1920, 1080);
+            local X = math.clamp(DisplayFrame.AbsolutePosition.X, 8, math.max(8, Viewport.X - PickerWidth - 8));
+            local Y = DisplayFrame.AbsolutePosition.Y + 18;
+
+            if Y + PickerHeight > Viewport.Y - 8 then
+                Y = math.max(8, DisplayFrame.AbsolutePosition.Y - PickerHeight - 4);
+            end
+
+            PickerFrameOuter.Position = UDim2.fromOffset(X, Y);
+        end
+        UpdatePickerPosition();
+        DisplayFrame:GetPropertyChangedSignal('AbsolutePosition'):Connect(UpdatePickerPosition);
 
         local PickerFrameInner = Library:Create('Frame', {
             BackgroundColor3 = Library.BackgroundColor;
@@ -4155,7 +4210,7 @@ function Library:CreateWindow(...)
         Position = Config.Position,
         Size = Config.Size,
         Visible = false;
-        ZIndex = 1;
+        ZIndex = Mini and 2 or 1;
         Parent = ScreenGui;
     });
     local WindowScale = tonumber(Config.Scale) or Library.Scale or 1;
@@ -4171,9 +4226,9 @@ function Library:CreateWindow(...)
         Text = '';
         BackgroundTransparency = 1;
         AutoButtonColor = false;
-        Position = UDim2.fromOffset(Library:GetResizeThickness(), Library:GetResizeThickness());
-        Size = UDim2.new(1, -Library:GetResizeThickness() * 2, 0, 25 - Library:GetResizeThickness());
-        ZIndex = 50;
+        Position = UDim2.new(0, 0, 0, 0);
+        Size = UDim2.new(1, (Mini and -30 or 0), 0, 25);
+        ZIndex = 105;
         Parent = Outer;
     });
     Library:MakeDraggable(TitleDrag, 25, true, Outer);
@@ -4215,8 +4270,8 @@ function Library:CreateWindow(...)
             Text = '×',
             TextColor3 = Library.FontColor,
             TextSize = Library.FontSize + 3,
-            ZIndex = 60,
-            Parent = Inner;
+            ZIndex = 110,
+            Parent = Outer;
         });
         Library:AddToRegistry(CloseButton, { TextColor3 = 'FontColor' });
         CloseButton.MouseButton1Click:Connect(function()
