@@ -33,7 +33,7 @@ Library.NotifySide = "Left"
 -- Scale      -> optional per-window DPI (defaults to Library.Scale)
 -- Position / Size are also accepted and are not required.
 local Window = Library:CreateWindow({
-	Title = "silly.lua | Example",
+	Title = "silly | Example",
 	Center = true,
 	AutoShow = true,
 	Resizable = true,
@@ -467,7 +467,7 @@ SecretDepbox:SetupDependencies({
 -- This mini window is only visible while the Depbox above is visible, so it
 -- appears when "Dependency box toggle" is enabled.
 local DependencyMiniWindow = Depbox:AddMiniWindow({
-	Title = "silly.lua | Dependency Mini",
+	Title = "silly | Dependency Mini",
 	Size = UDim2.fromOffset(340, 360),
 	Position = UDim2.fromOffset(60, 500),
 })
@@ -555,7 +555,7 @@ local MiniToggle = MiniGroupbox:AddToggle("MiniWindowToggle", {
 })
 
 local MiniWindow = MiniToggle:AddMiniWindow({
-	Title = "silly.lua | Mini",
+	Title = "silly | Mini",
 	Size = UDim2.fromOffset(380, 430),
 	Position = UDim2.fromOffset(60, 80),
 })
@@ -628,7 +628,7 @@ local ButtonMiniButton = ButtonMiniGroupbox:AddButton({
 })
 
 local ButtonMiniWindow = ButtonMiniButton:AddMiniWindow({
-	Title = "silly.lua | Button Mini",
+	Title = "silly | Button Mini",
 	Size = UDim2.fromOffset(340, 380),
 	Position = UDim2.fromOffset(470, 80),
 })
