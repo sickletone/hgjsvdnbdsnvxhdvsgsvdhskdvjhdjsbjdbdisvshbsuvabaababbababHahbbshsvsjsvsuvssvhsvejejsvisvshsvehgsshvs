@@ -78,6 +78,7 @@ local Library = {
     ScreenGui = ScreenGui;
 
     BuildVersion = '0.1';
+    Suffix = '.lua';
 
     Toggled = false;
     WireframeDrag = false;
@@ -693,6 +694,44 @@ function Library:GetDarkerColor(Color)
     return Color3.fromHSV(H, S, V / 1.5);
 end;
 
+function Library:ColorToHex(Color)
+    return string.format(
+        '%02X%02X%02X',
+        math.floor(math.clamp(Color.R, 0, 1) * 255 + 0.5),
+        math.floor(math.clamp(Color.G, 0, 1) * 255 + 0.5),
+        math.floor(math.clamp(Color.B, 0, 1) * 255 + 0.5)
+    );
+end;
+
+function Library:FormatTitle(Title, Suffix)
+    Title = type(Title) == 'string' and Title or 'silly';
+    Suffix = Suffix == nil and Library.Suffix or Suffix;
+
+    if type(Suffix) ~= 'string' or Suffix == '' then
+        return Title;
+    end
+
+    local Separator = Title:find('|', 1, true);
+    local Base = Separator and Title:sub(1, Separator - 1) or Title;
+    local Rest = Separator and Title:sub(Separator) or '';
+    local Trimmed = Base:gsub('%s+$', '');
+    local Whitespace = Base:sub(#Trimmed + 1);
+
+    if Trimmed == '' then
+        Trimmed = 'silly';
+    end
+
+    if #Trimmed >= #Suffix and Trimmed:sub(-#Suffix) == Suffix then
+        Trimmed = Trimmed:sub(1, -#Suffix - 1);
+    end
+
+    if Trimmed == '' then
+        Trimmed = 'silly';
+    end
+
+    return Trimmed .. '<font color="#' .. Library:ColorToHex(Library.AccentColor) .. '">' .. Suffix .. '</font>' .. Whitespace .. Rest;
+end;
+
 Library.AccentColorDark = Library:GetDarkerColor(Library.AccentColor);
 
 function Library:AddToRegistry(Instance, Properties, IsHud)
@@ -741,6 +780,10 @@ function Library:UpdateColorsUsingRegistry()
             end
         end;
     end;
+
+    if Library.RefreshSuffixes then
+        Library:RefreshSuffixes();
+    end
 end;
 
 function Library:GiveSignal(Signal)
@@ -3951,10 +3994,38 @@ function Library:SetWatermarkStats(Enabled)
     Library.WatermarkCustom = not Enabled;
 end;
 
-Library.DefaultWatermark = string.format('silly.lua | v%s', Library.BuildVersion);
+Library.DefaultWatermark = string.format('%s | v%s', Library:FormatTitle('silly'), Library.BuildVersion);
 Library.Watermark.Position = UDim2.fromOffset(10, 10);
 Library:SetWatermarkText(Library.DefaultWatermark);
 Library:SetWatermarkVisibility(true);
+
+function Library:RefreshSuffixes()
+    if Library.Unloaded then
+        return;
+    end
+
+    Library.DefaultWatermark = string.format('%s | v%s', Library:FormatTitle('silly'), Library.BuildVersion);
+
+    for _, Window in next, Library.Windows do
+        if Window.RefreshTitle then
+            Window:RefreshTitle();
+        end
+    end
+
+    if Library.Watermark and not Library.WatermarkCustom then
+        Library:SetWatermarkText(Library.DefaultWatermark);
+    end
+end;
+
+function Library:SetSuffix(Suffix)
+    if Library.Unloaded then
+        return;
+    end
+
+    Suffix = Suffix == nil and '.lua' or Suffix;
+    Library.Suffix = type(Suffix) == 'string' and Suffix or '';
+    Library:RefreshSuffixes();
+end;
 
 do
     local Frames, FPS, Last = 0, 0, os.clock();
@@ -3986,7 +4057,8 @@ do
                     Ping = math.floor(Value);
                 end
 
-                Library:SetWatermarkText(('silly.lua | %d fps • %d ms • %d players • v%s'):format(
+                Library:SetWatermarkText(('%s | %d fps • %d ms • %d players • v%s'):format(
+                    Library:FormatTitle('silly'),
                     FPS,
                     Ping,
                     #game:GetService('Players'):GetPlayers(),
@@ -4167,7 +4239,7 @@ function Library:CreateWindow(...)
     local Mini = Config.Mini == true;
 
     if type(Config.Title) ~= 'string' then
-        Config.Title = '<font color="#93A1FE">silly.lua</font>'
+        Config.Title = 'silly'
     end
     if type(Config.TabPadding) ~= 'number' then Config.TabPadding = 0 end
     if type(Config.MenuFadeTime) ~= 'number' then Config.MenuFadeTime = 0.2 end
@@ -4212,6 +4284,8 @@ function Library:CreateWindow(...)
 
     local Window = {
         Tabs = {};
+        Title = Config.Title;
+        Suffix = Config.Suffix;
     };
 
     local Outer = Library:Create('Frame', {
@@ -4264,7 +4338,7 @@ function Library:CreateWindow(...)
     local WindowLabel = Library:CreateLabel({
         Position = UDim2.new(0, 0, 0, 0);
         Size = UDim2.new(1, 0, 0, 25);
-        Text = Config.Title or '';
+        Text = Library:FormatTitle(Config.Title, Config.Suffix);
         RichText = true;
         TextXAlignment = Enum.TextXAlignment.Center;
         ZIndex = 1;
@@ -4442,8 +4516,19 @@ function Library:CreateWindow(...)
     Library:AddToRegistry(CornerCircle, {
         BackgroundColor3 = 'AccentColor';
     });
+    function Window:GetSuffix()
+        return Window.Suffix == nil and Library.Suffix or Window.Suffix;
+    end;
+    function Window:RefreshTitle()
+        WindowLabel.Text = Library:FormatTitle(Window.Title, Window:GetSuffix());
+    end;
     function Window:SetWindowTitle(Title)
-        WindowLabel.Text = Title;
+        Window.Title = Title;
+        Window:RefreshTitle();
+    end;
+    function Window:SetSuffix(Suffix)
+        Window.Suffix = Suffix;
+        Window:RefreshTitle();
     end;
     function Window:SetScale(Scale)
         Scale = tonumber(Scale) or 1;
