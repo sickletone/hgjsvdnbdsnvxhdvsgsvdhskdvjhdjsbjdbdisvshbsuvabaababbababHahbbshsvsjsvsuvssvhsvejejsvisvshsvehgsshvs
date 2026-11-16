@@ -676,6 +676,18 @@ WatermarkToggle = MenuGroup:AddToggle("ShowWatermark", {
 	end,
 })
 
+-- Live suffix used by window titles and the watermark.
+MenuGroup:AddInput("MenuSuffix", {
+	Text = "Title / watermark suffix",
+	Default = Library.Suffix or ".lua",
+	Placeholder = ".lua",
+	Finished = false,
+	Tooltip = "Accent-colored suffix used by window titles and the watermark",
+	Callback = function(Value)
+		Library:SetSuffix(Value)
+	end,
+})
+
 MenuGroup:AddDivider()
 MenuGroup:AddLabel("Menu bind"):AddKeyPicker("MenuKeybind", {
 	Default = "RightShift",
@@ -716,7 +728,7 @@ Library.ToggleKeybind = Options.MenuKeybind
 ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
 SaveManager:IgnoreThemeSettings()
-SaveManager:SetIgnoreIndexes({ "MenuKeybind", "MenuDPI" })
+SaveManager:SetIgnoreIndexes({ "MenuKeybind", "MenuDPI", "MenuSuffix" })
 ThemeManager:SetFolder("silly.lua")
 SaveManager:SetFolder("silly.lua/example")
 ThemeManager:ApplyToTab(Tabs["UI Settings"])
