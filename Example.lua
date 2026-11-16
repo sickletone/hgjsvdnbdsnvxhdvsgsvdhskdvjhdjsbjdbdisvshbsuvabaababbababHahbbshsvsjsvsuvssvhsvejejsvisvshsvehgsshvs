@@ -473,7 +473,7 @@ local DependencyMiniWindow = Depbox:AddMiniWindow({
 })
 
 local DependencyMiniTab = DependencyMiniWindow:AddTab("Dependency")
-DependencyMiniTab:AddLeftGroupbox("Dependency Mini"):AddLabel("This mini window follows the dependency box.\nEnable \"Dependency box toggle\" to show it.")
+DependencyMiniTab:AddLeftGroupbox("Dependency Mini"):AddLabel("This mini window follows the dependency box.\nEnable \"Dependency box toggle\" to show it.", true)
 
 -- Sub tabs:
 -- Tab:AddSubTab(Name) returns a sub tab with its own left and right columns.
@@ -530,7 +530,7 @@ MiscGroupbox:AddInput("SubMiscInput", {
 	Placeholder = "Type something",
 })
 MiscGroupbox:AddDivider()
-MiscGroupbox:AddLabel("Sub tabs work in the main window and in every mini window.")
+MiscGroupbox:AddLabel("Sub tabs work in the main window and in every mini window.", true)
 
 -- Mini windows:
 -- A mini window is a second Window created with Config.Mini = true.
@@ -562,7 +562,7 @@ local MiniWindow = MiniToggle:AddMiniWindow({
 
 local MiniTab = MiniWindow:AddTab("Mini")
 local MiniLeft = MiniTab:AddLeftGroupbox("All components")
-MiniLeft:AddLabel("This is a full second window.\nIt has its own tabs and every library element.")
+MiniLeft:AddLabel("This is a full second window.\nIt has its own tabs and every library element.", true)
 MiniLeft:AddToggle("MiniToggleDemo", {
 	Text = "A mini toggle",
 	Default = true,
@@ -604,7 +604,7 @@ MiniLeft:AddLabel("Keybind"):AddKeyPicker("MiniKeyPicker", {
 MiniLeft:AddDivider()
 
 local MiniRight = MiniTab:AddRightGroupbox("Mini groupbox")
-MiniRight:AddLabel("The mini window has a corner grip.\nDrag its edges to resize it.")
+MiniRight:AddLabel("The mini window has a corner grip.\nDrag its edges to resize it.", true)
 MiniRight:AddLabel("Its title bar is draggable too.")
 
 local MiniTab2 = MiniWindow:AddTab("More")
@@ -618,7 +618,7 @@ local MiniSub2 = MiniSubTab:AddSubTab("Second")
 MiniSub2:AddRightGroupbox("Second mini sub tab"):AddLabel("Another mini sub tab.")
 
 local ButtonMiniGroupbox = Tabs["Mini Windows"]:AddRightGroupbox("Button-bound mini window")
-ButtonMiniGroupbox:AddLabel("Clicking the button below opens or closes its mini window.")
+ButtonMiniGroupbox:AddLabel("Clicking the button below opens or closes its mini window.", true)
 local ButtonMiniButton = ButtonMiniGroupbox:AddButton({
 	Text = "Toggle button mini window",
 	Func = function()
@@ -633,10 +633,10 @@ local ButtonMiniWindow = ButtonMiniButton:AddMiniWindow({
 })
 
 ButtonMiniWindow:AddTab("Button"):AddLeftGroupbox("Button Mini"):AddLabel("This window is bound to the button above.")
-ButtonMiniWindow:AddTab("Info"):AddLeftGroupbox("Information"):AddLabel("Every mini window is a second window.\nAdd tabs and elements like normal.")
+ButtonMiniWindow:AddTab("Info"):AddLeftGroupbox("Information"):AddLabel("Every mini window is a second window.\nAdd tabs and elements like normal.", true)
 
 local DependencyMiniInfo = Tabs["Mini Windows"]:AddRightGroupbox("Dependency-bound mini window")
-DependencyMiniInfo:AddLabel("Open the Main tab and enable \"Dependency box toggle\".\nThe dependency mini window appears with the dependency box.")
+DependencyMiniInfo:AddLabel("Open the Main tab and enable \"Dependency box toggle\".\nThe dependency mini window appears with the dependency box.", true)
 
 Library:SetWatermarkVisibility(true)
 
