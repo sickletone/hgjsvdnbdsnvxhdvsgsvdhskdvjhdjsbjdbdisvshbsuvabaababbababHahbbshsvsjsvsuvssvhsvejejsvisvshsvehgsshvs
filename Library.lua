@@ -1014,6 +1014,16 @@ do
             ZIndex = 16;
             Parent = PickerFrameOuter;
         });
+        Library:Create('TextButton', {
+            Name = 'Blocker';
+            Text = '';
+            BackgroundTransparency = 1;
+            AutoButtonColor = false;
+            Modal = true;
+            Size = UDim2.new(1, 0, 1, 0);
+            ZIndex = 16;
+            Parent = PickerFrameInner;
+        });
         local Highlight = Library:Create('Frame', {
             BackgroundColor3 = Library.AccentColor;
             BorderSizePixel = 0;
@@ -1515,12 +1525,13 @@ do
                 local AbsPos, AbsSize = PickerFrameOuter.AbsolutePosition, PickerFrameOuter.AbsoluteSize;
                 local DFPos = DisplayFrame.AbsolutePosition;
                 local DFSize = DisplayFrame.AbsoluteSize;
+                local MousePos = Input.Position;
 
-                if Mouse.X < AbsPos.X or Mouse.X > AbsPos.X + AbsSize.X
-                    or Mouse.Y < DFPos.Y or Mouse.Y > AbsPos.Y + AbsSize.Y then
+                if MousePos.X < AbsPos.X or MousePos.X > AbsPos.X + AbsSize.X
+                    or MousePos.Y < AbsPos.Y or MousePos.Y > AbsPos.Y + AbsSize.Y then
 
-                    if not (Mouse.X >= DFPos.X and Mouse.X <= DFPos.X + DFSize.X
-                        and Mouse.Y >= DFPos.Y and Mouse.Y <= DFPos.Y + DFSize.Y) then
+                    if not (MousePos.X >= DFPos.X and MousePos.X <= DFPos.X + DFSize.X
+                        and MousePos.Y >= DFPos.Y and MousePos.Y <= DFPos.Y + DFSize.Y) then
                         ColorPicker:Hide();
                     end
                 end;
