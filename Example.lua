@@ -612,8 +612,9 @@ MiniTab2:AddLeftGroupbox("Second mini tab"):AddLabel("Mini windows support multi
 
 local MiniSubTab = MiniWindow:AddTab("Mini Sub Tabs")
 local MiniSub1 = MiniSubTab:AddSubTab("First")
-MiniSub1:AddLeftGroupbox("Mini sub tab"):AddLabel("Sub tabs work inside mini windows as well.")
-MiniSub1:AddToggle("MiniSubToggle", { Text = "A mini sub tab toggle", Default = true })
+local MiniSubGroup = MiniSub1:AddLeftGroupbox("Mini sub tab")
+MiniSubGroup:AddLabel("Sub tabs work inside mini windows as well.")
+MiniSubGroup:AddToggle("MiniSubToggle", { Text = "A mini sub tab toggle", Default = true })
 local MiniSub2 = MiniSubTab:AddSubTab("Second")
 MiniSub2:AddRightGroupbox("Second mini sub tab"):AddLabel("Another mini sub tab.")
 
