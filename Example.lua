@@ -388,12 +388,12 @@ end)
 
 task.spawn(function()
 	while task.wait(1) do
+		if Library.Unloaded then break end
+
 		local state = Options.KeyPicker:GetState()
 		if state then
 			print("KeyPicker is being held down")
 		end
-
-		if Library.Unloaded then break end
 	end
 end)
 
@@ -638,50 +638,10 @@ ButtonMiniWindow:AddTab("Info"):AddLeftGroupbox("Information"):AddLabel("Every m
 local DependencyMiniInfo = Tabs["Mini Windows"]:AddRightGroupbox("Dependency-bound mini window")
 DependencyMiniInfo:AddLabel("Open the Main tab and enable \"Dependency box toggle\".\nThe dependency mini window appears with the dependency box.", true)
 
-Library:SetWatermarkVisibility(true)
-
-local PlayersService = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local StatsService = game:GetService("Stats")
-
-local FrameTimer = os.clock()
-local FrameCounter = 0
-local FPS = 60
-local function GetPing()
-	return math.floor(StatsService.Network.ServerStatsItem["Data Ping"]:GetValue())
-end
-local CanDoPing = pcall(GetPing)
-
-local WatermarkConnection = RunService.RenderStepped:Connect(function()
-	FrameCounter += 1
-
-	if (os.clock() - FrameTimer) >= 1 then
-		FPS = FrameCounter
-		FrameTimer = os.clock()
-		FrameCounter = 0
-	end
-
-	if CanDoPing then
-		Library:SetWatermark(("silly.lua | %d fps • %d ms • %d players • v%s"):format(
-			math.floor(FPS),
-			GetPing(),
-			#PlayersService:GetPlayers(),
-			Library.BuildVersion
-		))
-	else
-		Library:SetWatermark(("silly.lua | %d fps • %d players • v%s"):format(
-			math.floor(FPS),
-			#PlayersService:GetPlayers(),
-			Library.BuildVersion
-		))
-	end
-end)
-
+-- The library renders the silly.lua watermark with live FPS, ping, players
+-- and BuildVersion. UI Settings can hide/show it with the Watermark toggle.
 Library:OnUnload(function()
-	WatermarkConnection:Disconnect()
-
 	print("Unloaded!")
-	Library.Unloaded = true
 end)
 
 local MenuGroup = Tabs["UI Settings"]:AddLeftGroupbox("Menu")
@@ -699,6 +659,19 @@ MenuGroup:AddToggle("ShowCustomCursor", {
 	Default = true,
 	Callback = function(Value)
 		Library.ShowCustomCursor = Value
+	end,
+})
+
+local WatermarkToggle
+WatermarkToggle = MenuGroup:AddToggle("ShowWatermark", {
+	Text = "Hide Watermark",
+	Default = true,
+	Callback = function(Value)
+		Library:SetWatermarkVisibility(Value)
+
+		if WatermarkToggle then
+			WatermarkToggle:SetText(Value and "Hide Watermark" or "Show Watermark")
+		end
 	end,
 })
 

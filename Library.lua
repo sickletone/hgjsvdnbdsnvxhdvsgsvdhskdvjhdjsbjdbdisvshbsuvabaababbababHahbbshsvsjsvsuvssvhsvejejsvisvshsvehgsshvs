@@ -711,22 +711,92 @@ function Library:GiveSignal(Signal)
 end
 
 function Library:Unload()
-    for Idx = #Library.Signals, 1, -1 do
-        local Connection = table.remove(Library.Signals, Idx)
-        Connection:Disconnect()
-    end
-
-    if Library.OnUnload then
-        Library.OnUnload()
+    if Library.Unloaded then
+        return;
     end
 
     Library:SetCursorEnabled(false);
+    Library.Unloaded = true;
+    Library.Toggled = false;
 
-    if Library.BlurEffect then
-        Library.BlurEffect:Destroy()
+    if Library.OnUnload then
+        pcall(Library.OnUnload);
+        Library.OnUnload = nil;
     end
 
-    ScreenGui:Destroy()
+    for Idx = #Library.Signals, 1, -1 do
+        local Connection = table.remove(Library.Signals, Idx);
+        pcall(function()
+            Connection:Disconnect();
+        end);
+    end
+    table.clear(Library.Signals);
+
+    if Library.BlurEffect then
+        Library.BlurEffect:Destroy();
+        Library.BlurEffect = nil;
+    end
+
+    if Library.MobileUI then
+        Library.MobileUI:Destroy();
+        Library.MobileUI = nil;
+    end
+
+    table.clear(Library.OpenedFrames);
+
+    for _, Window in next, Library.Windows do
+        if Window.Tabs then
+            table.clear(Window.Tabs);
+            Window.Tabs = nil;
+        end
+
+        Window.Holder = nil;
+        Window.UIScale = nil;
+    end
+
+    ScreenGui:Destroy();
+
+    table.clear(Library.Toggles);
+    table.clear(Library.Options);
+    table.clear(Library.Labels);
+    table.clear(Library.Windows);
+    table.clear(Library.DependencyBoxes);
+    table.clear(Library.KeyPickerList);
+    table.clear(Library.RegistryMap);
+
+    if Library.MobileButtons then
+        table.clear(Library.MobileButtons);
+    end
+
+    Library.Toggles = nil;
+    Library.Options = nil;
+    Library.Labels = nil;
+    Library.Windows = nil;
+    Library.DependencyBoxes = nil;
+    Library.KeyPickerList = nil;
+    Library.MobileButtons = nil;
+    Library.MobileToggleButton = nil;
+    Library.MobileLockButton = nil;
+    Library.KeybindFrame = nil;
+    Library.KeybindContainer = nil;
+    Library.Watermark = nil;
+    Library.WatermarkText = nil;
+    Library.NotificationArea = nil;
+    Library.NotifLayout = nil;
+    Library.Cursor = nil;
+    Library.CursorConnections = nil;
+    Library.UpdateNotifAlignment = nil;
+    Library.UpdateColorsUsingRegistry = nil;
+    Library.Toggle = nil;
+    Library.ToggleKeybind = nil;
+    Library.ScreenGui = nil;
+
+    local Env = GetEnv();
+    if Env then
+        if Env.Options == Options then Env.Options = nil end
+        if Env.Toggles == Toggles then Env.Toggles = nil end
+        if Env.Library == Library then Env.Library = nil end
+    end
 end
 
 function Library:OnUnload(Callback)
@@ -777,6 +847,10 @@ Library.Cursor = CursorHost;
 Library.CursorConnections = {};
 
 function Library:SetCursorEnabled(Enabled)
+    if Library.Unloaded then
+        return;
+    end
+
     Enabled = (not not Enabled) and Library.CursorEnabled and Library.ShowCustomCursor and (not InputService.TouchEnabled);
 
     if Enabled and Library.Toggled and not Library.UnlockMouseWhileOpen then
@@ -1808,6 +1882,21 @@ do
         return self;
     end;
 
+    function Funcs:AddMiniWindow(Config)
+        local Mini = Library:CreateMiniWindow(Config);
+
+        if self.Type == 'Toggle' then
+            table.insert(self.Addons, { Type = 'MiniWindow'; Window = Mini; });
+            Mini:SetVisible(self.Value);
+
+            Mini.OnClose = function()
+                self:SetValue(false);
+            end;
+        end
+
+        return Mini;
+    end;
+
     BaseAddons.__index = Funcs;
     BaseAddons.__namecall = function(Table, Key, ...)
         return Funcs[Key](...);
@@ -2520,6 +2609,10 @@ do
         function Toggle:OnChanged(Func)
             Toggle.Changed = Func;
             Func(Toggle.Value);
+        end;
+
+        function Toggle:SetText(Text)
+            Toggle.TextLabel.Text = Text;
         end;
 
         function Toggle:SetValue(Bool)
@@ -3384,7 +3477,7 @@ do
                 end;
             end;
         end);
-        InputService.InputBegan:Connect(function(Input)
+        Library:GiveSignal(InputService.InputBegan:Connect(function(Input)
             if (Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) then
                 local AbsPos, AbsSize = ListOuter.AbsolutePosition, ListOuter.AbsoluteSize;
 
@@ -3394,7 +3487,7 @@ do
                     Dropdown:CloseDropdown();
                 end;
             end;
-        end);
+        end));
         Dropdown:BuildDropdownList();
         Dropdown:Display();
 
@@ -3742,26 +3835,41 @@ function Library:RefreshKeybinds()
 end
 
 function Library:SetWatermarkVisibility(Bool)
+    if Library.Unloaded or not Library.Watermark then
+        return;
+    end
+
     Library.Watermark.Visible = Bool;
 end;
 
 function Library:SetWatermarkText(Text)
+    if Library.Unloaded or not Library.Watermark then
+        return;
+    end
+
     Text = Text or Library.DefaultWatermark or 'silly.lua';
 
     local Plain = Text:gsub('<[^>]*>', '');
     local X, Y = Library:GetTextBounds(Plain, Library.Font, Library.FontSize);
     Library.Watermark.Size = UDim2.new(0, X + 15, 0, (Y * 1.5) + 3);
-    Library:SetWatermarkVisibility(true)
 
     Library.WatermarkText.Text = Text;
 end;
 
 function Library:SetWatermark(Text)
+    if Library.Unloaded then
+        return;
+    end
+
     Library.WatermarkCustom = true;
     Library:SetWatermarkText(Text);
 end;
 
 function Library:SetWatermarkStats(Enabled)
+    if Library.Unloaded then
+        return;
+    end
+
     Library.WatermarkStats = Enabled;
     Library.WatermarkCustom = not Enabled;
 end;
@@ -3769,12 +3877,13 @@ end;
 Library.DefaultWatermark = string.format('silly.lua | v%s', Library.BuildVersion);
 Library.Watermark.Position = UDim2.fromOffset(10, 10);
 Library:SetWatermarkText(Library.DefaultWatermark);
+Library:SetWatermarkVisibility(true);
 
 do
     local Frames, FPS, Last = 0, 0, os.clock();
     local Ping = 0;
 
-    RenderStepped:Connect(function()
+    Library:GiveSignal(RenderStepped:Connect(function()
         Frames += 1;
         local Now = os.clock();
         if Now - Last >= 1 then
@@ -3782,10 +3891,16 @@ do
             Frames = 0;
             Last = Now;
         end
-    end);
+    end));
 
     task.spawn(function()
-        while task.wait(1) do
+        while not Library.Unloaded do
+            task.wait(1);
+
+            if Library.Unloaded then
+                break;
+            end
+
             if Library.WatermarkStats and not Library.WatermarkCustom then
                 local Success, Value = pcall(function()
                     return game:GetService('Stats').Network.ServerStatsItem['Data Ping']:GetValue();
@@ -3805,6 +3920,10 @@ do
     end);
 end;
 function Library:Notify(Text, Time, SoundId)
+    if Library.Unloaded or not Library.NotificationArea then
+        return;
+    end
+
     local cfg     = Library.NotifyConfig
 
     if Library.NotifySide and (cfg.Alignment ~= Library.NotifySide or cfg.BarSide ~= Library.NotifySide) then
@@ -3954,6 +4073,10 @@ function Library:Notify(Text, Time, SoundId)
 end;
 
 function Library:CreateWindow(...)
+    if Library.Unloaded then
+        return;
+    end
+
     local Arguments = { ... }
     local Config = { AnchorPoint = Vector2.zero }
 
@@ -4263,7 +4386,7 @@ function Library:CreateWindow(...)
                 end
                 table.clear(Library.OpenedFrames);
             end
-        elseif Library.Toggled ~= Visible then
+        elseif Library.Toggle and Library.Toggled ~= Visible then
             task.spawn(Library.Toggle);
         end
     end;
@@ -4888,6 +5011,10 @@ function Library:CreateWindow(...)
 
     if not Mini then
     function Library:Toggle()
+        if Library.Unloaded then
+            return;
+        end
+
         Library.Toggled = not Library.Toggled;
         Outer.Visible = Library.Toggled;
 
@@ -4951,6 +5078,10 @@ function Library:CreateWindow(...)
 end;
 
 function Library:SetScale(Scale)
+    if Library.Unloaded then
+        return;
+    end
+
     Scale = math.clamp(tonumber(Scale) or 1, 0.5, 2);
     Library.Scale = Scale;
 
@@ -4966,6 +5097,10 @@ function Library:SetDPI(Scale)
 end;
 
 function Library:CreateMiniWindow(Config)
+    if Library.Unloaded then
+        return;
+    end
+
     Config = Config or {};
     Config.Mini = true;
     return Library:CreateWindow(Config);
@@ -4980,8 +5115,8 @@ local function OnPlayerChange()
     end;
 end;
 
-Players.PlayerAdded:Connect(OnPlayerChange);
-Players.PlayerRemoving:Connect(OnPlayerChange);
+Library:GiveSignal(Players.PlayerAdded:Connect(OnPlayerChange));
+Library:GiveSignal(Players.PlayerRemoving:Connect(OnPlayerChange));
 
 if InputService.TouchEnabled then
     local MobileGui = Instance.new('ScreenGui')
