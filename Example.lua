@@ -201,6 +201,7 @@ LeftGroupBox:AddDivider()
 	Compact will hide the title label of the Slider
 	HideMax will only display the value instead of the value & max value of the slider
 ]]
+-- Double click (or double tap) a slider to type an exact value.
 LeftGroupBox:AddSlider("MySlider", {
 	Text = "This is my slider!",
 	Default = 0,
@@ -213,7 +214,7 @@ LeftGroupBox:AddSlider("MySlider", {
 		print("[cb] MySlider was changed! New value:", Value)
 	end,
 
-	Tooltip = "I am a slider!", -- Information shown when you hover over the slider
+	Tooltip = "Double click/tap to type an exact value", -- Information shown when you hover over the slider
 })
 
 -- Options is a table added to getgenv() by the library

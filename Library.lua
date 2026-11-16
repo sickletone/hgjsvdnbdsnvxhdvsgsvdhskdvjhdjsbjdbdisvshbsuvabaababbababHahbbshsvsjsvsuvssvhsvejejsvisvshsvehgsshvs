@@ -2616,6 +2616,7 @@ do
             Type = 'Slider';
             Disabled = Info.Disabled or false;
             Visible = Info.Visible ~= false;
+            Editing = false;
             Callback = Info.Callback or function(Value) end;
         };
 
@@ -2687,6 +2688,27 @@ do
             ZIndex = 9;
             Parent = SliderInner;
         });
+        local EditBox = Library:Create('TextBox', {
+            BackgroundColor3 = Library.BackgroundColor;
+            BorderColor3 = Library.OutlineColor;
+            BorderMode = Enum.BorderMode.Inset;
+            Size = UDim2.new(1, 0, 1, 0);
+            Font = Library.Font;
+            PlaceholderColor3 = Color3.fromRGB(130, 130, 130);
+            Text = '';
+            TextColor3 = Library.FontColor;
+            TextSize = Library.FontSize;
+            TextXAlignment = Enum.TextXAlignment.Center;
+            ClearTextOnFocus = false;
+            Visible = false;
+            ZIndex = 12;
+            Parent = SliderInner;
+        });
+        Library:AddToRegistry(EditBox, {
+            BackgroundColor3 = 'BackgroundColor';
+            BorderColor3 = 'OutlineColor';
+            TextColor3 = 'FontColor';
+        });
         Library:OnHighlight(SliderOuter, SliderOuter,
             { BorderColor3 = 'AccentColor' },
             { BorderColor3 = 'Black' }
@@ -2748,6 +2770,35 @@ do
 
             return tonumber(string.format('%.' .. Slider.Rounding .. 'f', Value))
         end;
+
+        function Slider:BeginEdit()
+            if Slider.Disabled then
+                return;
+            end
+
+            Slider.Editing = true;
+            EditBox.Text = '';
+            EditBox.PlaceholderText = tostring(Slider.Value);
+            EditBox.Visible = true;
+            DisplayLabel.Visible = false;
+            EditBox:CaptureFocus();
+        end;
+
+        EditBox.FocusLost:Connect(function()
+            if not Slider.Editing then
+                return;
+            end
+
+            local Num = tonumber(EditBox.Text);
+            if Num then
+                Slider:SetValue(Round(Num));
+            end
+
+            Slider.Editing = false;
+            EditBox.Visible = false;
+            DisplayLabel.Visible = true;
+            Library:AttemptSave();
+        end);
         function Slider:GetValueFromXOffset(X)
             return Round(Library:MapValue(X, 0, Slider:GetWidth(), Slider.Min, Slider.Max));
         end;
@@ -2766,11 +2817,20 @@ do
             Library:SafeCallback(Slider.Changed, Slider.Value);
         end;
         SliderInner.InputBegan:Connect(function(Input)
-            if Slider.Disabled then
+            if Slider.Disabled or Slider.Editing then
                 return;
             end
 
             if (Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) and not Library:MouseIsOverOpenedFrame() then
+                local Now = os.clock();
+
+                if Slider.LastClick and (Now - Slider.LastClick) <= 0.35 then
+                    Slider.LastClick = nil;
+                    Slider:BeginEdit();
+                    return;
+                end
+
+                Slider.LastClick = Now;
 
                 local function UpdateSlider(PosX)
                     local gPos = Fill.AbsolutePosition.X
