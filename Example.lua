@@ -108,6 +108,13 @@ end)
 -- This should print to the console: "MyToggle state changed! New value: false"
 Toggles.MyToggle:SetValue(false)
 
+LeftGroupBox:AddToggle("DisabledToggle", {
+	Text = "This toggle is disabled",
+	Default = true,
+	Disabled = true,
+	DisabledTooltip = "I am disabled!",
+})
+
 --[[
 	Groupbox:AddButton
 	Arguments: {
@@ -129,6 +136,16 @@ local MyButton = LeftGroupBox:AddButton({
 	DoubleClick = false,
 
 	Tooltip = "This is the main button",
+})
+
+local MyDisabledButton = LeftGroupBox:AddButton({
+	Text = "Disabled button",
+	Func = function()
+		print("You somehow clicked a disabled button!")
+	end,
+	Disabled = true,
+	Tooltip = "This is a disabled button",
+	DisabledTooltip = "I am disabled!",
 })
 
 local MyButton2 = MyButton:AddButton({
@@ -224,6 +241,19 @@ LeftGroupBox:AddSlider("MySlider2", {
 	Tooltip = "I am a compact slider!",
 })
 
+LeftGroupBox:AddSlider("MyRatingSlider", {
+	Text = "Rate this menu",
+	Default = 3,
+	Min = 1,
+	Max = 5,
+	Rounding = 0,
+
+	FormatDisplayValue = function(slider, value)
+		if value == slider.Min then return "Terrible" end
+		if value == slider.Max then return "Amazing" end
+	end,
+})
+
 -- Groupbox:AddInput
 -- Arguments: Idx, Info
 LeftGroupBox:AddInput("MyTextbox", {
@@ -295,6 +325,7 @@ Options.MyMultiDropdown:SetValue({
 -- Special dropdowns are filled from the player / team list and refresh automatically
 DropdownGroupBox:AddDropdown("MyPlayerDropdown", {
 	SpecialType = "Player",
+	ExcludeLocalPlayer = true,
 	Text = "A player dropdown",
 	Tooltip = "This is a tooltip",
 
@@ -311,6 +342,39 @@ DropdownGroupBox:AddDropdown("MyTeamDropdown", {
 	Callback = function(Value)
 		print("[cb] Team dropdown got changed:", Value)
 	end
+})
+
+DropdownGroupBox:AddDropdown("MySearchableDropdown", {
+	Values = { "This", "is", "a", "searchable", "dropdown" },
+	Default = 1,
+	Text = "A searchable dropdown",
+	Searchable = true,
+})
+
+DropdownGroupBox:AddDropdown("MyDisplayDropdown", {
+	Values = { "This", "is", "a", "formatted", "dropdown" },
+	Default = 1,
+	Text = "A display formatted dropdown",
+
+	FormatDisplayValue = function(Value)
+		if Value == "formatted" then return "display formatted" end
+		return Value
+	end,
+})
+
+DropdownGroupBox:AddDropdown("MyLongDropdown", {
+	Values = { "This", "is", "a", "long", "dropdown", "with", "disabled", "values", "and", "more", "items" },
+	Default = 1,
+	Text = "A long dropdown",
+	DisabledValues = { "disabled" },
+	MaxVisibleDropdownItems = 12,
+})
+
+DropdownGroupBox:AddDropdown("MyDisabledDropdown", {
+	Values = { "This", "is", "a", "dropdown" },
+	Default = 1,
+	Text = "A disabled dropdown",
+	Disabled = true,
 })
 
 -- Label:AddColorPicker
@@ -385,6 +449,21 @@ end)
 
 Options.KeyPicker:SetValue({ "MB2", "Hold" }) -- Sets keybind to MB2, mode to Hold
 
+LeftGroupBox:AddLabel("Press Keybind"):AddKeyPicker("KeyPicker2", {
+	Default = "X",
+	Mode = "Press",
+	Text = "Increase number",
+	WaitForCallback = false,
+
+	Callback = function()
+		print("[cb] Press keybind clicked!")
+	end,
+})
+
+Options.KeyPicker2:OnChanged(function(Value, Modifiers)
+	print("Press keybind changed!", Value, table.unpack(Modifiers or {}))
+end)
+
 -- Long text label to demonstrate UI scrolling behaviour.
 local LeftGroupBox2 = Tabs.Main:AddLeftGroupbox("Groupbox #2")
 LeftGroupBox2:AddLabel("Oh no...\nThis label spans multiple lines!\n\nWe are gonna run out of UI space...\nJust kidding! Scroll down!\n\n\nHello from below!", true)
@@ -430,42 +509,11 @@ SecretDepbox:SetupDependencies({
 })
 
 -- Library functions
--- Sets the watermark visibility
+-- The watermark shows silly.lua, your fps, ping, player count and the build version by default.
+-- Call Library:SetWatermark("custom text") if you would rather show your own text.
 Library:SetWatermarkVisibility(true)
 
--- Example of dynamically-updating watermark with common traits (fps and ping)
-local FrameTimer = os.clock()
-local FrameCounter = 0
-local FPS = 60
-local GetPing = function()
-	return math.floor(game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue())
-end
-local CanDoPing = pcall(GetPing)
-
-local WatermarkConnection = game:GetService("RunService").RenderStepped:Connect(function()
-	FrameCounter += 1
-
-	if (os.clock() - FrameTimer) >= 1 then
-		FPS = FrameCounter
-		FrameTimer = os.clock()
-		FrameCounter = 0
-	end
-
-	if CanDoPing then
-		Library:SetWatermark(("angel demo | %d fps | %d ms"):format(
-			math.floor(FPS),
-			GetPing()
-		))
-	else
-		Library:SetWatermark(("angel demo | %d fps"):format(
-			math.floor(FPS)
-		))
-	end
-end)
-
 Library:OnUnload(function()
-	WatermarkConnection:Disconnect()
-
 	print("Unloaded!")
 	Library.Unloaded = true
 end)

@@ -70,12 +70,23 @@ local Library = {
 
     OpenedFrames = {};
     DependencyBoxes = {};
+    Labels = {};
 
     Signals = {};
     ScreenGui = ScreenGui;
 
+    BuildVersion = '0.1';
+
     Toggled = false;
-    WireframeDrag = true;
+    WireframeDrag = false;
+    Locked = false;
+    ShowCustomCursor = true;
+    UnlockMouseWhileOpen = true;
+    ShowToggleFrameInKeybinds = true;
+    NotifySide = 'Left';
+    WatermarkCustom = false;
+    WatermarkStats = true;
+    MenuFadeTime = 0.2;
     UseBlur = false;
     BlurSize = 15;
 
@@ -266,6 +277,10 @@ function Library:MakeDraggable(Instance, Cutoff, IsWindow, MoveTarget)
     Instance.Active = true;
     Instance.InputBegan:Connect(function(Input)
         if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
+            if IsWindow and Library.Locked then
+                return;
+            end
+
             local StartPos = Target.Position
             local DragStart = Input.Position
 
@@ -325,11 +340,17 @@ function Library:MakeDraggable(Instance, Cutoff, IsWindow, MoveTarget)
                     ChangedConn:Disconnect()
                     EndedConn:Disconnect()
 
-                    if IsWindow and Library.WireframeDrag and HasMoved and Wireframe then
-                        Target.Position = Wireframe.Position
+                    if IsWindow then
+                        if Library.WireframeDrag and HasMoved and Wireframe then
+                            Target.Position = Wireframe.Position;
 
-                        Wireframe:Destroy()
-                        Wireframe = nil
+                            Wireframe:Destroy();
+                            Wireframe = nil;
+                        end
+
+                        local Clamped = Library:ClampWindowPosition(Target.AbsolutePosition, Target.AbsoluteSize);
+                        Target.AnchorPoint = Vector2.zero;
+                        Target.Position = UDim2.fromOffset(Clamped.X, Clamped.Y);
                     end
                 end
             end)
@@ -477,6 +498,9 @@ function Library:AddResizeHandles(Target)
             if Input.UserInputType ~= Enum.UserInputType.MouseButton1 and Input.UserInputType ~= Enum.UserInputType.Touch then
                 return;
             end
+            if Library.Locked then
+                return;
+            end
 
             PrepareResize();
 
@@ -537,7 +561,7 @@ function Library:AddResizeHandles(Target)
     end));
 end;
 
-function Library:AddToolTip(InfoStr, HoverInstance)
+function Library:AddToolTip(InfoStr, HoverInstance, DisabledStr, IsDisabled)
     local X, Y = Library:GetTextBounds(InfoStr, Library.Font, Library.FontSize);
     local Tooltip = Library:Create('Frame', {
         BackgroundColor3 = Library.MainColor,
@@ -573,6 +597,19 @@ function Library:AddToolTip(InfoStr, HoverInstance)
     HoverInstance.MouseEnter:Connect(function()
         if Library:MouseIsOverOpenedFrame() then
             return
+        end
+
+        local Text = InfoStr;
+        if DisabledStr and IsDisabled and IsDisabled() then
+            Text = DisabledStr;
+        end
+
+        if Label.Text ~= Text then
+            Label.Text = Text;
+
+            local TextX, TextY = Library:GetTextBounds(Text, Library.Font, Library.FontSize);
+            Tooltip.Size = UDim2.fromOffset(TextX + 5, TextY + 4);
+            Label.Size = UDim2.fromOffset(TextX, TextY);
         end
 
         IsHovering = true
@@ -779,7 +816,11 @@ Library.Cursor = CursorHost;
 Library.CursorConnections = {};
 
 function Library:SetCursorEnabled(Enabled)
-    Enabled = (not not Enabled) and Library.CursorEnabled and (not InputService.TouchEnabled);
+    Enabled = (not not Enabled) and Library.CursorEnabled and Library.ShowCustomCursor and (not InputService.TouchEnabled);
+
+    if Enabled and Library.Toggled and not Library.UnlockMouseWhileOpen then
+        Enabled = false;
+    end
 
     CursorHost.Visible = Enabled;
     if not InputService.TouchEnabled then
@@ -1222,8 +1263,8 @@ do
             HueBox.Text = '#' .. ColorPicker.Value:ToHex()
             RgbBox.Text = table.concat({ math.floor(ColorPicker.Value.R * 255), math.floor(ColorPicker.Value.G * 255), math.floor(ColorPicker.Value.B * 255) }, ', ')
 
-            Library:SafeCallback(ColorPicker.Callback, ColorPicker.Value);
-            Library:SafeCallback(ColorPicker.Changed, ColorPicker.Value);
+            Library:SafeCallback(ColorPicker.Callback, ColorPicker.Value, ColorPicker.Transparency);
+            Library:SafeCallback(ColorPicker.Changed, ColorPicker.Value, ColorPicker.Transparency);
         end;
 
         function ColorPicker:OnChanged(Func)
@@ -1442,6 +1483,9 @@ do
             ChangedCallback = Info.ChangedCallback or function(New) end;
 
             SyncToggleState = Info.SyncToggleState or false;
+            WaitForCallback = Info.WaitForCallback or false;
+            Busy = false;
+            Modifiers = nil;
         };
         if KeyPicker.SyncToggleState then
             Info.Modes = { 'Toggle' }
@@ -1520,8 +1564,10 @@ do
             Parent = KeybindEntry,
         }, true)
 
-        local Modes = Info.Modes or { 'Always', 'Toggle', 'Hold' };
+        local Modes = Info.Modes or { 'Always', 'Toggle', 'Hold', 'Press' };
         local ModeButtons = {};
+
+        ModeSelectOuter.Size = UDim2.new(0, 60, 0, (#Modes * 15) + 2);
 
         for Idx, Mode in next, Modes do
             local ModeButton = {};
@@ -1568,6 +1614,11 @@ do
             if Info.NoUI then
                 return;
             end;
+
+            if ParentObj.Type == 'Toggle' and not Library.ShowToggleFrameInKeybinds then
+                KeybindEntry.Visible = false;
+                return;
+            end
 
             local State = KeyPicker:GetState();
 
@@ -1645,7 +1696,7 @@ do
 
         function KeyPicker:OnChanged(Callback)
             KeyPicker.Changed = Callback
-            Callback(KeyPicker.Value)
+            Callback(KeyPicker.Value, KeyPicker.Modifiers)
         end
 
         if ParentObj.Addons then
@@ -1654,12 +1705,20 @@ do
         end
 
         function KeyPicker:DoClick()
+            if KeyPicker.Busy then
+                return;
+            end
+
+            KeyPicker.Busy = true;
+
             if ParentObj.Type == 'Toggle' and KeyPicker.SyncToggleState then
                 ParentObj:SetValue(not ParentObj.Value)
             end
 
             Library:SafeCallback(KeyPicker.Callback, KeyPicker.Toggled)
             Library:SafeCallback(KeyPicker.Clicked, KeyPicker.Toggled)
+
+            KeyPicker.Busy = false;
         end
 
         local Picking = false;
@@ -1701,13 +1760,21 @@ do
                         Key = 'Touch';
                     end;
 
+                    local Modifiers = {};
+                    for _, Modifier in next, { Enum.KeyCode.LeftShift, Enum.KeyCode.RightShift, Enum.KeyCode.LeftControl, Enum.KeyCode.RightControl, Enum.KeyCode.LeftAlt, Enum.KeyCode.RightAlt } do
+                        if InputService:IsKeyDown(Modifier) and Modifier ~= Input.KeyCode then
+                            table.insert(Modifiers, Modifier);
+                        end
+                    end
+
                     Break = true;
                     Picking = false;
 
                     DisplayLabel.Text = Key;
                     KeyPicker.Value = Key;
-                    Library:SafeCallback(KeyPicker.ChangedCallback, Input.KeyCode or Input.UserInputType)
-                    Library:SafeCallback(KeyPicker.Changed, Input.KeyCode or Input.UserInputType)
+                    KeyPicker.Modifiers = (#Modifiers > 0) and Modifiers or nil;
+                    Library:SafeCallback(KeyPicker.ChangedCallback, Input.KeyCode or Input.UserInputType, KeyPicker.Modifiers)
+                    Library:SafeCallback(KeyPicker.Changed, Input.KeyCode or Input.UserInputType, KeyPicker.Modifiers)
 
                     Library:AttemptSave();
                     Event:Disconnect();
@@ -1736,6 +1803,25 @@ do
                         end;
                     end;
                 end;
+
+                if KeyPicker.Mode == 'Press' then
+                    local Key = KeyPicker.Value;
+                    local Pressed = false;
+
+                    if Key == 'MB1' or Key == 'MB2' or Key == 'Touch' then
+                        Pressed = (Key == 'MB1' and Input.UserInputType == Enum.UserInputType.MouseButton1)
+                            or (Key == 'MB2' and Input.UserInputType == Enum.UserInputType.MouseButton2)
+                            or (Key == 'Touch' and Input.UserInputType == Enum.UserInputType.Touch);
+                    elseif Input.UserInputType == Enum.UserInputType.Keyboard then
+                        Pressed = Input.KeyCode.Name == Key;
+                    end
+
+                    if Pressed then
+                        KeyPicker.Toggled = true;
+                        KeyPicker:DoClick();
+                        KeyPicker.Toggled = false;
+                    end
+                end
 
                 KeyPicker:Update();
             end;
@@ -1852,7 +1938,13 @@ do
 
         return unpack(Boxes)
     end;
-    function Funcs:AddLabel(Text, DoesWrap)
+    function Funcs:AddLabel(Text, DoesWrap, Idx)
+        if type(DoesWrap) == 'table' then
+            Idx = Text;
+            Text = DoesWrap.Text or '';
+            DoesWrap = DoesWrap.DoesWrap;
+        end
+
         local Label = {};
 
         local Groupbox = self;
@@ -1914,6 +2006,10 @@ do
         Groupbox:AddBlank(5);
         Groupbox:Resize();
 
+        if Idx then
+            Library.Labels[Idx] = Label;
+        end
+
         return Label;
     end;
     function Funcs:AddButton(...)
@@ -1925,6 +2021,9 @@ do
                 Obj.Func = Props.Func
                 Obj.DoubleClick = Props.DoubleClick
                 Obj.Tooltip = Props.Tooltip
+                Obj.Disabled = Props.Disabled
+                Obj.Visible = Props.Visible
+                Obj.DisabledTooltip = Props.DisabledTooltip
             else
                 Obj.Text = select(1, ...)
                 Obj.Func = select(2, ...)
@@ -2016,6 +2115,8 @@ do
             Button.Outer.InputBegan:Connect(function(Input)
                 if not ValidateClick(Input) then return end
 
+                if Button.Disabled then return end
+
                 if Button.Locked then return end
 
                 if Button.DoubleClick then
@@ -2049,11 +2150,21 @@ do
         Button.Outer, Button.Inner, Button.Label = CreateBaseButton(Button)
         Button.Outer.Parent = Container
 
+        Button.Outer.Visible = Button.Visible ~= false;
+
+        if Button.Disabled then
+            Button.Outer.Active = false;
+            Button.Inner.BackgroundTransparency = 0.5;
+            Button.Label.TextTransparency = 0.5;
+        end
+
         InitEvents(Button)
 
         function Button:AddTooltip(tooltip)
             if type(tooltip) == 'string' then
-                Library:AddToolTip(tooltip, self.Outer)
+                Library:AddToolTip(tooltip, self.Outer, self.DisabledTooltip, function()
+                    return self.Disabled;
+                end)
             end
             return self
         end
@@ -2070,6 +2181,14 @@ do
             SubButton.Outer.Position = UDim2.new(1, 3, 0, 0)
             SubButton.Outer.Parent = self.Outer
 
+            SubButton.Outer.Visible = SubButton.Visible ~= false;
+
+            if SubButton.Disabled then
+                SubButton.Outer.Active = false;
+                SubButton.Inner.BackgroundTransparency = 0.5;
+                SubButton.Label.TextTransparency = 0.5;
+            end
+
             local function UpdateSubButton()
                 SubButton.Outer.Size = UDim2.fromOffset(
                     math.max(0, self.Outer.AbsoluteSize.X - 2),
@@ -2082,7 +2201,9 @@ do
 
             function SubButton:AddTooltip(tooltip)
                 if type(tooltip) == 'string' then
-                    Library:AddToolTip(tooltip, self.Outer)
+                    Library:AddToolTip(tooltip, self.Outer, self.DisabledTooltip, function()
+                        return self.Disabled;
+                    end)
                  end
                 return SubButton
             end
@@ -2148,6 +2269,8 @@ do
             Numeric = Info.Numeric or false;
             Finished = Info.Finished or false;
             Type = 'Input';
+            Disabled = Info.Disabled or false;
+            Visible = Info.Visible ~= false;
             Callback = Info.Callback or function(Value) end;
         };
         local Groupbox = self;
@@ -2188,7 +2311,9 @@ do
             { BorderColor3 = 'Black' }
         );
         if type(Info.Tooltip) == 'string' then
-            Library:AddToolTip(Info.Tooltip, TextBoxOuter)
+            Library:AddToolTip(Info.Tooltip, TextBoxOuter, Info.DisabledTooltip, function()
+                return Textbox.Disabled;
+            end)
         end
 
         Library:Create('UIGradient', {
@@ -2306,6 +2431,17 @@ do
         Groupbox:AddBlank(5);
         Groupbox:Resize();
 
+        TextBoxOuter.Visible = Textbox.Visible;
+        InputLabel.Visible = Textbox.Visible;
+
+        if Textbox.Disabled then
+            TextBoxOuter.Active = false;
+            TextBoxInner.BackgroundTransparency = 0.5;
+            InputLabel.TextTransparency = 0.5;
+            Box.TextEditable = false;
+            Box.TextTransparency = 0.5;
+        end
+
         Options[Idx] = Textbox;
 
         return Textbox;
@@ -2321,6 +2457,8 @@ do
             Callback = Info.Callback or function(Value) end;
             Addons = {},
             Risky = Info.Risky,
+            Disabled = Info.Disabled or false;
+            Visible = Info.Visible ~= false;
         };
         local Groupbox = self;
         local Container = Groupbox.Container;
@@ -2390,7 +2528,9 @@ do
             Toggle:Display();
         end;
         if type(Info.Tooltip) == 'string' then
-            Library:AddToolTip(Info.Tooltip, ToggleRegion)
+            Library:AddToolTip(Info.Tooltip, ToggleRegion, Info.DisabledTooltip, function()
+                return Toggle.Disabled;
+            end)
         end
 
         function Toggle:Display()
@@ -2423,6 +2563,10 @@ do
             Library:UpdateDependencyBoxes();
         end;
         ToggleRegion.InputBegan:Connect(function(Input)
+            if Toggle.Disabled then
+                return;
+            end
+
             if (Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) and not Library:MouseIsOverOpenedFrame() then
                 Toggle:SetValue(not Toggle.Value)
                 Library:AttemptSave();
@@ -2437,6 +2581,14 @@ do
         Toggle:Display();
         Groupbox:AddBlank(Info.BlankSize or 5 + 2);
         Groupbox:Resize();
+
+        ToggleOuter.Visible = Toggle.Visible;
+
+        if Toggle.Disabled then
+            ToggleRegion.Active = false;
+            ToggleInner.BackgroundTransparency = 0.5;
+            ToggleLabel.TextTransparency = 0.5;
+        end
 
         Toggle.TextLabel = ToggleLabel;
         Toggle.Container = Container;
@@ -2462,13 +2614,16 @@ do
             Rounding = Info.Rounding;
             MaxSize = 232;
             Type = 'Slider';
+            Disabled = Info.Disabled or false;
+            Visible = Info.Visible ~= false;
             Callback = Info.Callback or function(Value) end;
         };
 
         local Groupbox = self;
         local Container = Groupbox.Container;
+        local SliderLabel;
         if not Info.Compact then
-            Library:CreateLabel({
+            SliderLabel = Library:CreateLabel({
                 Size = UDim2.new(1, 0, 0, 10);
                 TextSize = Library.FontSize;
                 Text = Info.Text;
@@ -2537,7 +2692,9 @@ do
             { BorderColor3 = 'Black' }
         );
         if type(Info.Tooltip) == 'string' then
-            Library:AddToolTip(Info.Tooltip, SliderOuter)
+            Library:AddToolTip(Info.Tooltip, SliderOuter, Info.DisabledTooltip, function()
+                return Slider.Disabled;
+            end)
         end
 
         function Slider:UpdateColors()
@@ -2555,7 +2712,18 @@ do
 
         function Slider:Display()
             local Suffix = Info.Suffix or '';
-            if Info.Compact then
+            local Custom;
+
+            if Info.FormatDisplayValue then
+                local Success, Result = pcall(Info.FormatDisplayValue, Slider, Slider.Value);
+                if Success then
+                    Custom = Result;
+                end
+            end
+
+            if Custom ~= nil then
+                DisplayLabel.Text = Custom;
+            elseif Info.Compact then
                 DisplayLabel.Text = Info.Text .. ': ' .. Slider.Value .. Suffix
             elseif Info.HideMax then
                 DisplayLabel.Text = string.format('%s', Slider.Value .. Suffix)
@@ -2598,6 +2766,10 @@ do
             Library:SafeCallback(Slider.Changed, Slider.Value);
         end;
         SliderInner.InputBegan:Connect(function(Input)
+            if Slider.Disabled then
+                return;
+            end
+
             if (Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) and not Library:MouseIsOverOpenedFrame() then
 
                 local function UpdateSlider(PosX)
@@ -2646,6 +2818,19 @@ do
         Groupbox:AddBlank(Info.BlankSize or 6);
         Groupbox:Resize();
 
+        SliderOuter.Visible = Slider.Visible;
+
+        if SliderLabel then
+            SliderLabel.Visible = Slider.Visible;
+        end
+
+        if Slider.Disabled then
+            SliderOuter.Active = false;
+            SliderInner.BackgroundTransparency = 0.5;
+            DisplayLabel.TextTransparency = 0.5;
+            Fill.BackgroundTransparency = 0.5;
+        end
+
         Options[Idx] = Slider;
 
         return Slider;
@@ -2653,6 +2838,17 @@ do
     function Funcs:AddDropdown(Idx, Info)
         if Info.SpecialType == 'Player' then
             Info.Values = GetPlayersString();
+
+            if Info.ExcludeLocalPlayer then
+                local Filtered = {};
+                for _, Name in next, Info.Values do
+                    if Name ~= LocalPlayer.Name then
+                        table.insert(Filtered, Name);
+                    end
+                end
+                Info.Values = Filtered;
+            end
+
             Info.AllowNull = true;
         elseif Info.SpecialType == 'Team' then
             Info.Values = GetTeamsString();
@@ -2672,6 +2868,12 @@ do
             Multi = Info.Multi;
             Type = 'Dropdown';
             SpecialType = Info.SpecialType;
+            Disabled = Info.Disabled or false;
+            Visible = Info.Visible ~= false;
+            Searchable = Info.Searchable or false;
+            DisabledValues = Info.DisabledValues;
+            MaxVisible = Info.MaxVisibleDropdownItems or 8;
+            ExcludeLocalPlayer = Info.ExcludeLocalPlayer;
             Callback = Info.Callback or function(Value) end;
         };
 
@@ -2679,8 +2881,9 @@ do
         local Container = Groupbox.Container;
 
         local RelativeOffset = 0;
+        local DropdownLabel;
         if not Info.Compact then
-            local DropdownLabel = Library:CreateLabel({
+            DropdownLabel = Library:CreateLabel({
                 Size = UDim2.new(1, 0, 0, 10);
                 TextSize = Library.FontSize;
                 Text = Info.Text;
@@ -2753,10 +2956,18 @@ do
             { BorderColor3 = 'Black' }
         );
         if type(Info.Tooltip) == 'string' then
-            Library:AddToolTip(Info.Tooltip, DropdownOuter)
+            Library:AddToolTip(Info.Tooltip, DropdownOuter, Info.DisabledTooltip, function()
+                return Dropdown.Disabled;
+            end)
         end
 
+        local SearchBox;
+        local ListOffset = 0;
+
         local MAX_DROPDOWN_ITEMS = 8;
+        local function GetMaxVisible()
+            return Dropdown.MaxVisible or MAX_DROPDOWN_ITEMS;
+        end
         local ListOuter = Library:Create('Frame', {
             BackgroundColor3 = Color3.new(0, 0, 0);
             BorderColor3 = Color3.new(0, 0, 0);
@@ -2769,7 +2980,7 @@ do
         end;
 
         local function RecalculateListSize(YSize)
-            ListOuter.Size = UDim2.fromOffset(DropdownOuter.AbsoluteSize.X, YSize or (MAX_DROPDOWN_ITEMS * 20 + 2))
+            ListOuter.Size = UDim2.fromOffset(DropdownOuter.AbsoluteSize.X, (YSize or (GetMaxVisible() * 20 + 2)) + ListOffset)
         end;
         RecalculateListPosition();
         RecalculateListSize();
@@ -2792,11 +3003,46 @@ do
             BackgroundColor3 = 'MainColor';
             BorderColor3 = 'OutlineColor';
         });
+
+        if Info.Searchable then
+            ListOffset = 22;
+
+            local SearchOuter = Library:Create('Frame', {
+                BackgroundColor3 = Library.BackgroundColor;
+                BorderColor3 = Library.OutlineColor;
+                BorderMode = Enum.BorderMode.Inset;
+                Size = UDim2.new(1, 0, 0, 22);
+                ZIndex = 23;
+                Parent = ListInner;
+            });
+            Library:AddToRegistry(SearchOuter, {
+                BackgroundColor3 = 'BackgroundColor';
+                BorderColor3 = 'OutlineColor';
+            });
+            SearchBox = Library:Create('TextBox', {
+                BackgroundTransparency = 1;
+                Position = UDim2.fromOffset(5, 0);
+                Size = UDim2.new(1, -10, 1, 0);
+                Font = Library.Font;
+                PlaceholderText = 'Search...';
+                PlaceholderColor3 = Color3.fromRGB(120, 120, 120);
+                Text = '';
+                TextColor3 = Library.FontColor;
+                TextSize = Library.FontSize;
+                TextXAlignment = Enum.TextXAlignment.Left;
+                ClearTextOnFocus = false;
+                ZIndex = 24;
+                Parent = SearchOuter;
+            });
+            Library:AddToRegistry(SearchBox, { TextColor3 = 'FontColor' });
+        end
+
         local Scrolling = Library:Create('ScrollingFrame', {
             BackgroundTransparency = 1;
             BorderSizePixel = 0;
             CanvasSize = UDim2.new(0, 0, 0, 0);
-            Size = UDim2.new(1, 0, 1, 0);
+            Position = UDim2.fromOffset(0, ListOffset);
+            Size = UDim2.new(1, 0, 1, -ListOffset);
             ZIndex = 21;
             Parent = ListInner;
 
@@ -2816,6 +3062,17 @@ do
             SortOrder = Enum.SortOrder.LayoutOrder;
             Parent = Scrolling;
         });
+        local function FormatValue(Value)
+            if Info.FormatDisplayValue then
+                local Success, Result = pcall(Info.FormatDisplayValue, Value);
+                if Success and Result ~= nil then
+                    return Result;
+                end
+            end
+
+            return Value;
+        end
+
         function Dropdown:Display()
             local Values = Dropdown.Values;
             local Str = '';
@@ -2823,13 +3080,13 @@ do
             if Info.Multi then
                 for Idx, Value in next, Values do
                     if Dropdown.Value[Value] then
-                        Str = Str .. Value .. ', ';
+                        Str = Str .. FormatValue(Value) .. ', ';
                     end;
                 end;
 
                 Str = Str:sub(1, #Str - 2);
             else
-                Str = Dropdown.Value or '';
+                Str = Dropdown.Value and FormatValue(Dropdown.Value) or '';
             end;
 
             ItemList.Text = (Str == '' and '--' or Str);
@@ -2847,9 +3104,20 @@ do
             end;
         end;
 
-        function Dropdown:BuildDropdownList()
+        function Dropdown:BuildDropdownList(Filter)
             local Values = Dropdown.Values;
             local Buttons = {};
+
+            Filter = (Filter or ''):lower();
+            if Filter ~= '' then
+                local Filtered = {};
+                for _, Value in next, Values do
+                    if string.find(string.lower(tostring(Value)), Filter, 1, true) then
+                        table.insert(Filtered, Value);
+                    end
+                end
+                Values = Filtered;
+            end
 
             for _, Element in next, Scrolling:GetChildren() do
                 if not Element:IsA('UIListLayout') then
@@ -2881,11 +3149,26 @@ do
                     Size = UDim2.new(1, -6, 1, 0);
                     Position = UDim2.new(0, 6, 0, 0);
                     TextSize = Library.FontSize;
-                    Text = Value;
+                    Text = FormatValue(Value);
                     TextXAlignment = Enum.TextXAlignment.Left;
                     ZIndex = 25;
                     Parent = Button;
                 });
+
+                local IsDisabled = false;
+                if Info.DisabledValues then
+                    for _, DisabledValue in next, Info.DisabledValues do
+                        if DisabledValue == Value then
+                            IsDisabled = true;
+                            break;
+                        end
+                    end
+                end
+
+                if IsDisabled then
+                    ButtonLabel.TextTransparency = 0.5;
+                    Button.BackgroundTransparency = 0.5;
+                end
 
                 Library:OnHighlight(Button, Button,
                     { BorderColor3 = 'AccentColor', ZIndex = 24 },
@@ -2910,6 +3193,10 @@ do
                     Library.RegistryMap[ButtonLabel].Properties.TextColor3 = Selected and 'AccentColor' or 'FontColor';
                 end;
                 ButtonLabel.InputBegan:Connect(function(Input)
+                    if IsDisabled then
+                        return;
+                    end
+
                     if (Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) then
                         local Try = not Selected;
 
@@ -2939,6 +3226,7 @@ do
 
                             Table:UpdateButton();
                             Dropdown:Display();
+                            Library:UpdateDependencyBoxes();
 
                             Library:SafeCallback(Dropdown.Callback, Dropdown.Value);
                             Library:SafeCallback(Dropdown.Changed, Dropdown.Value);
@@ -2955,12 +3243,28 @@ do
             end;
             Scrolling.CanvasSize = UDim2.fromOffset(0, (Count * 20) + 1);
 
-            local Y = math.clamp(Count * 20, 0, MAX_DROPDOWN_ITEMS * 20) + 1;
+            local Y = math.clamp(Count * 20, 0, GetMaxVisible() * 20) + 1;
             RecalculateListSize(Y);
         end;
 
+        if SearchBox then
+            SearchBox:GetPropertyChangedSignal('Text'):Connect(function()
+                Dropdown:BuildDropdownList(SearchBox.Text);
+            end);
+        end
+
         function Dropdown:SetValues(NewValues)
             if NewValues then
+                if Dropdown.ExcludeLocalPlayer then
+                    local Filtered = {};
+                    for _, Name in next, NewValues do
+                        if Name ~= LocalPlayer.Name then
+                            table.insert(Filtered, Name);
+                        end
+                    end
+                    NewValues = Filtered;
+                end
+
                 Dropdown.Values = NewValues;
             end;
 
@@ -2971,12 +3275,21 @@ do
             ListOuter.Visible = true;
             Library.OpenedFrames[ListOuter] = true;
             DropdownArrow.Rotation = 180;
+
+            if SearchBox then
+                SearchBox.Text = '';
+                SearchBox:CaptureFocus();
+            end
         end;
 
         function Dropdown:CloseDropdown()
             ListOuter.Visible = false;
             Library.OpenedFrames[ListOuter] = nil;
             DropdownArrow.Rotation = 0;
+
+            if SearchBox then
+                SearchBox:ReleaseFocus();
+            end
         end;
 
         function Dropdown:OnChanged(Func)
@@ -3006,9 +3319,15 @@ do
 
             Library:SafeCallback(Dropdown.Callback, Dropdown.Value);
             Library:SafeCallback(Dropdown.Changed, Dropdown.Value);
+
+            Library:UpdateDependencyBoxes();
         end;
 
         DropdownOuter.InputBegan:Connect(function(Input)
+            if Dropdown.Disabled then
+                return;
+            end
+
             if (Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) and not Library:MouseIsOverOpenedFrame() then
                 if ListOuter.Visible then
                     Dropdown:CloseDropdown();
@@ -3068,6 +3387,19 @@ do
         Groupbox:AddBlank(Info.BlankSize or 5);
         Groupbox:Resize();
 
+        DropdownOuter.Visible = Dropdown.Visible;
+
+        if DropdownLabel then
+            DropdownLabel.Visible = Dropdown.Visible;
+        end
+
+        if Dropdown.Disabled then
+            DropdownOuter.Active = false;
+            DropdownInner.BackgroundTransparency = 0.5;
+            ItemList.TextTransparency = 0.5;
+            DropdownArrow.ImageTransparency = 0.5;
+        end
+
         Options[Idx] = Dropdown;
 
         return Dropdown;
@@ -3113,7 +3445,19 @@ do
                 local Elem = Dependency[1];
                 local Value = Dependency[2];
 
-                if Elem.Type == 'Toggle' and Elem.Value ~= Value then
+                local Matches = true;
+
+                if Elem.Type == 'Toggle' then
+                    Matches = Elem.Value == Value;
+                elseif Elem.Type == 'Dropdown' then
+                    if type(Elem.Value) == 'table' then
+                        Matches = Elem.Value[Value] == true;
+                    else
+                        Matches = Elem.Value == Value;
+                    end
+                end
+
+                if not Matches then
                     Holder.Visible = false;
                     Depbox:Resize();
                     return;
@@ -3327,8 +3671,8 @@ function Library:SetWatermarkVisibility(Bool)
     Library.Watermark.Visible = Bool;
 end;
 
-function Library:SetWatermark(Text)
-    Text = Text or Library.DefaultWatermark or 'remade by angel';
+function Library:SetWatermarkText(Text)
+    Text = Text or Library.DefaultWatermark or 'silly.lua';
 
     local Plain = Text:gsub('<[^>]*>', '');
     local X, Y = Library:GetTextBounds(Plain, Library.Font, Library.FontSize);
@@ -3338,13 +3682,81 @@ function Library:SetWatermark(Text)
     Library.WatermarkText.Text = Text;
 end;
 
-Library.DefaultWatermark = string.format('remade by <font color="#93A1FE">angel</font>   <font color="#646464">build: %s</font>', os.date('%b %d %Y'));
+function Library:SetWatermark(Text)
+    Library.WatermarkCustom = true;
+    Library:SetWatermarkText(Text);
+end;
+
+function Library:SetWatermarkStats(Enabled)
+    Library.WatermarkStats = Enabled;
+    Library.WatermarkCustom = not Enabled;
+end;
+
+Library.DefaultWatermark = string.format('silly.lua | v%s', Library.BuildVersion);
 Library.Watermark.Position = UDim2.fromOffset(10, 10);
-Library:SetWatermark(Library.DefaultWatermark);
-function Library:Notify(Text, Time)
+Library:SetWatermarkText(Library.DefaultWatermark);
+
+do
+    local Frames, FPS, Last = 0, 0, os.clock();
+    local Ping = 0;
+
+    RenderStepped:Connect(function()
+        Frames += 1;
+        local Now = os.clock();
+        if Now - Last >= 1 then
+            FPS = Frames;
+            Frames = 0;
+            Last = Now;
+        end
+    end);
+
+    task.spawn(function()
+        while task.wait(1) do
+            if Library.WatermarkStats and not Library.WatermarkCustom then
+                local Success, Value = pcall(function()
+                    return game:GetService('Stats').Network.ServerStatsItem['Data Ping']:GetValue();
+                end);
+                if Success then
+                    Ping = math.floor(Value);
+                end
+
+                Library:SetWatermarkText(('silly.lua | %d fps • %d ms • %d players • v%s'):format(
+                    FPS,
+                    Ping,
+                    #game:GetService('Players'):GetPlayers(),
+                    Library.BuildVersion
+                ));
+            end
+        end
+    end);
+end;
+function Library:Notify(Text, Time, SoundId)
     local cfg     = Library.NotifyConfig
+
+    if Library.NotifySide and (cfg.Alignment ~= Library.NotifySide or cfg.BarSide ~= Library.NotifySide) then
+        cfg.Alignment = Library.NotifySide;
+        cfg.BarSide = Library.NotifySide;
+
+        if Library.UpdateNotifAlignment then
+            Library.UpdateNotifAlignment();
+        end
+    end
+
     local barSide = cfg.BarSide   or 'Left'
     local align   = cfg.Alignment or 'Left'
+
+    if SoundId then
+        local Sound = Instance.new('Sound');
+        Sound.SoundId = 'rbxassetid://' .. tostring(SoundId);
+        Sound.Parent = game:GetService('SoundService');
+        pcall(function()
+            game:GetService('SoundService'):PlayLocalSound(Sound);
+        end);
+
+        task.delay(3, function()
+            Sound:Destroy();
+        end);
+    end
 
     local XSize, YSize = Library:GetTextBounds(Text, Library.Font, Library.FontSize)
     YSize = YSize + 7
@@ -3479,10 +3891,24 @@ function Library:CreateWindow(...)
     end
 
     if type(Config.Title) ~= 'string' then
-        Config.Title = 'remade by <font color="#93A1FE">angel</font>'
+        Config.Title = '<font color="#93A1FE">silly.lua</font>'
     end
     if type(Config.TabPadding) ~= 'number' then Config.TabPadding = 0 end
     if type(Config.MenuFadeTime) ~= 'number' then Config.MenuFadeTime = 0.2 end
+    Library.MenuFadeTime = Config.MenuFadeTime;
+
+    if Config.ShowCustomCursor ~= nil then Library.ShowCustomCursor = Config.ShowCustomCursor end
+    if Config.UnlockMouseWhileOpen ~= nil then Library.UnlockMouseWhileOpen = Config.UnlockMouseWhileOpen end
+
+    if type(Config.NotifySide) == 'string' then
+        Library.NotifySide = Config.NotifySide;
+        Library.NotifyConfig.Alignment = Config.NotifySide;
+        Library.NotifyConfig.BarSide = Config.NotifySide;
+
+        if Library.UpdateNotifAlignment then
+            Library.UpdateNotifAlignment();
+        end
+    end
 
     if typeof(Config.Size) ~= 'UDim2' then Config.Size = UDim2.fromOffset(530, 640) end
     if typeof(Config.Position) ~= 'UDim2' then Config.Position = UDim2.fromOffset(175, 50) end
@@ -3529,7 +3955,9 @@ function Library:CreateWindow(...)
         Parent = Outer;
     });
     Library:MakeDraggable(TitleDrag, 25, true, Outer);
-    Library:AddResizeHandles(Outer);
+    if Config.Resizable ~= false and Library.ResizeHandles then
+        Library:AddResizeHandles(Outer);
+    end
 
     local Inner = Library:Create('Frame', {
         Name = "Inner",
@@ -4148,6 +4576,10 @@ function Library:CreateWindow(...)
         end
         table.clear(Library.OpenedFrames);
 
+        if Library.MobileToggleButton then
+            Library.MobileToggleButton.Text = Library.Toggled and 'Close' or 'Menu';
+        end
+
         Library:SetCursorEnabled(Library.Toggled);
         if Library.UseBlur then
             if Library.Toggled then
@@ -4287,10 +4719,8 @@ if InputService.TouchEnabled then
         return Outer, Button
     end
 
-    local ToggleOuter, ToggleButton = CreateMobileButton('Toggle', 'menu', 10)
-    local LockOuter, LockButton = CreateMobileButton('Lock', 'unlock', 10 + BTN_H + BTN_GAP)
-
-    local Unlocked = false
+    local ToggleOuter, ToggleButton = CreateMobileButton('Toggle', 'Menu', 10)
+    local LockOuter, LockButton = CreateMobileButton('Lock', 'Lock', 10 + BTN_H + BTN_GAP)
 
     local function BindMobileButton(Button, Outer, OnClick)
         local Dragging, DragInput, DragStart, StartPos, Moved = false, nil, nil, nil, false
@@ -4332,7 +4762,7 @@ if InputService.TouchEnabled then
                 Moved = true
             end
 
-            if Unlocked and Moved then
+            if not Library.Locked and Moved then
                 Outer.Position = UDim2.new(
                     StartPos.X.Scale, StartPos.X.Offset + Delta.X,
                     StartPos.Y.Scale, StartPos.Y.Offset + Delta.Y
@@ -4345,20 +4775,32 @@ if InputService.TouchEnabled then
         Library:Toggle()
     end)
 
+    local function UpdateLockButton()
+        LockButton.Text = Library.Locked and 'Unlock' or 'Lock'
+        LockButton.TextColor3 = Library.Locked and Library.AccentColor or Library.FontColor
+
+        local Registry = Library.RegistryMap[LockButton]
+        if Registry then
+            Registry.Properties.TextColor3 = Library.Locked and 'AccentColor' or 'FontColor'
+        end
+    end
+
     BindMobileButton(LockButton, LockOuter, function()
-        Unlocked = not Unlocked
-        LockButton.Text = Unlocked and 'lock' or 'unlock'
-        LockButton.TextColor3 = Unlocked and Library.AccentColor or Library.FontColor
-        Library.RegistryMap[LockButton].Properties.TextColor3 = Unlocked and 'AccentColor' or 'FontColor'
+        Library.Locked = not Library.Locked
+        UpdateLockButton()
     end)
+
+    UpdateLockButton()
 
     Library.MobileUI = MobileGui
     Library.MobileButtons = { ToggleOuter, LockOuter }
+    Library.MobileToggleButton = ToggleButton
+    Library.MobileLockButton = LockButton
 
     local BaseUpdateColors = Library.UpdateColorsUsingRegistry
     Library.UpdateColorsUsingRegistry = function(Self)
         BaseUpdateColors(Self)
-        LockButton.TextColor3 = Unlocked and Library.AccentColor or Library.FontColor
+        UpdateLockButton()
     end
 end
 
