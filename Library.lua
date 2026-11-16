@@ -2792,6 +2792,8 @@ do
             local Num = tonumber(EditBox.Text);
             if Num then
                 Slider:SetValue(Round(Num));
+            else
+                Slider:SetValue(Slider.Value);
             end
 
             Slider.Editing = false;
@@ -2826,6 +2828,12 @@ do
 
                 if Slider.LastClick and (Now - Slider.LastClick) <= 0.35 then
                     Slider.LastClick = nil;
+
+                    if Slider.PreClickValue ~= nil then
+                        Slider.Value = Slider.PreClickValue;
+                        Slider:Display();
+                    end
+
                     Slider:BeginEdit();
                     return;
                 end
@@ -2850,6 +2858,8 @@ do
                         Library:SafeCallback(Slider.Changed, Slider.Value);
                     end;
                 end
+
+                Slider.PreClickValue = Slider.Value;
 
                 UpdateSlider(Input.Position.X)
 
