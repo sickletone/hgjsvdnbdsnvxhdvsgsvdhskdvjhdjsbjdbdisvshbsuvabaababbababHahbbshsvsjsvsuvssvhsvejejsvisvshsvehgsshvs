@@ -4038,7 +4038,7 @@ function Library:SetMenuVisible(Visible)
     end
 
     for _, Window in next, Library.Windows do
-        if not Window.Mini then
+        if not Window.Mini or not Visible then
             Window:SetVisible(Visible);
         end
     end
