@@ -4962,7 +4962,7 @@ function Library:SetScale(Scale)
 end;
 
 function Library:SetDPI(Scale)
-    return Library:SetScale(Scale);
+    return self:SetScale(Scale);
 end;
 
 function Library:CreateMiniWindow(Config)
