@@ -56,7 +56,7 @@ end
 
 local ScreenGui = Instance.new('ScreenGui');
 ProtectGui(ScreenGui);
-ScreenGui.Name = 'angel' .. GuiSuffix;
+ScreenGui.Name = 'sillyUI' .. GuiSuffix;
 ScreenGui.IgnoreGuiInset = true;
 ScreenGui.ResetOnSpawn = false;
 ScreenGui.DisplayOrder = 999;
@@ -144,7 +144,7 @@ Library.ToggleKey = IsDefaultNamespace and Enum.KeyCode.RightControl or Enum.Key
 Library.CursorEnabled = true;
 
 Library.BlurEffect = Instance.new("BlurEffect")
-Library.BlurEffect.Name = "angelBlur" .. GuiSuffix
+Library.BlurEffect.Name = "sillyBlur" .. GuiSuffix
 Library.BlurEffect.Size = 0
 Library.BlurEffect.Enabled = false
 pcall(function() Library.BlurEffect.Parent = Lighting end)
@@ -248,8 +248,8 @@ function Library:SafeCallback(f, ...)
 end;
 
 function Library:AttemptSave()
-    if Library.SaveManager then
-        Library.SaveManager:Save();
+    if Library.SaveHelper then
+        Library.SaveHelper:Save();
     end;
 end;
 
@@ -5355,7 +5355,7 @@ Library:GiveSignal(Players.PlayerRemoving:Connect(OnPlayerChange));
 
 if InputService.TouchEnabled then
     local MobileGui = Instance.new('ScreenGui')
-    MobileGui.Name = 'angelMobileUI' .. GuiSuffix
+    MobileGui.Name = 'sillyMobileUI' .. GuiSuffix
     MobileGui.IgnoreGuiInset = true
     MobileGui.ResetOnSpawn = false
     MobileGui.ZIndexBehavior = Enum.ZIndexBehavior.Global

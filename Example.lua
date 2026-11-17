@@ -13,9 +13,9 @@ local repo = "https://raw.githubusercontent.com/sickletone/hgjsvdnbdsnvxhdvsgsvd
 -- Change this namespace to run this fork beside another copy of the library.
 -- Use "silly" if you need the legacy getgenv().Library/Options/Toggles globals.
 local NAMESPACE = "silly-fork"
-local Library = loadstring(game:HttpGet(repo .. "Library.lua"))(NAMESPACE)
-local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
-local SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
+local Library = loadstring(game:HttpGet(repo .. "Main.lua"))(NAMESPACE)
+local ThemeHelper = loadstring(game:HttpGet(repo .. "addons/ThemeHelper.lua"))()
+local SaveHelper = loadstring(game:HttpGet(repo .. "addons/SaveHelper.lua"))()
 
 local Options = Library.Options
 local Toggles = Library.Toggles
@@ -731,15 +731,15 @@ LoadingGroup:AddToggle("SilentLoad", {
 Library.ToggleKeybind = Options.MenuKeybind
 
 -- Addons:
--- SaveManager saves/loads configs and ThemeManager handles themes.
+-- SaveHelper saves/loads configs and ThemeHelper handles themes.
 -- Settings that should not be per-config are ignored below.
-ThemeManager:SetLibrary(Library)
-SaveManager:SetLibrary(Library)
-SaveManager:IgnoreThemeSettings()
-SaveManager:SetIgnoreIndexes({ "MenuKeybind", "MenuDPI" })
+ThemeHelper:SetLibrary(Library)
+SaveHelper:SetLibrary(Library)
+SaveHelper:IgnoreThemeSettings()
+SaveHelper:SetIgnoreIndexes({ "MenuKeybind", "MenuDPI" })
 local DataFolder = Library.IsDefaultNamespace and "silly.lua" or ("silly.lua/" .. Library.Namespace)
-ThemeManager:SetFolder(DataFolder)
-SaveManager:SetFolder(DataFolder .. "/example")
-ThemeManager:ApplyToTab(Tabs["UI Settings"])
-SaveManager:BuildConfigSection(Tabs["UI Settings"])
-SaveManager:LoadAutoloadConfig()
+ThemeHelper:SetFolder(DataFolder)
+SaveHelper:SetFolder(DataFolder .. "/example")
+ThemeHelper:ApplyToTab(Tabs["UI Settings"])
+SaveHelper:BuildConfigSection(Tabs["UI Settings"])
+SaveHelper:LoadAutoloadConfig()

@@ -1,11 +1,11 @@
 local HttpService = game:GetService('HttpService')
 
-local ThemeManager = {}
-ThemeManager.Folder = 'angelLibSettings'
-ThemeManager.Library = nil
-ThemeManager.DefaultTheme = 'Default'
-ThemeManager.Fields = { 'FontColor', 'MainColor', 'AccentColor', 'BackgroundColor', 'OutlineColor', 'RiskColor' }
-ThemeManager.BuiltInThemes = {
+local ThemeHelper = {}
+ThemeHelper.Folder = 'sillyUISettings'
+ThemeHelper.Library = nil
+ThemeHelper.DefaultTheme = 'Default'
+ThemeHelper.Fields = { 'FontColor', 'MainColor', 'AccentColor', 'BackgroundColor', 'OutlineColor', 'RiskColor' }
+ThemeHelper.BuiltInThemes = {
     ['Default'] = { 1, { FontColor = 'ffffff', MainColor = '151514', AccentColor = '93a1fe', BackgroundColor = '111110', OutlineColor = '1f1e1f' } },
     ['Primordial'] = { 2, { FontColor = 'ffffff', MainColor = '181818', AccentColor = 'd7a6b0', BackgroundColor = '1f1f1f', OutlineColor = '2a2a2a' } },
     ['BBot'] = { 3, { FontColor = 'ffffff', MainColor = '1e1e1e', AccentColor = '7e48a3', BackgroundColor = '232323', OutlineColor = '141414' } },
@@ -29,7 +29,7 @@ local function Shared(Name)
     end
 end
 
-function ThemeManager:HasFilesystem()
+function ThemeHelper:HasFilesystem()
     return type(isfolder) == 'function'
         and type(makefolder) == 'function'
         and type(isfile) == 'function'
@@ -38,7 +38,7 @@ function ThemeManager:HasFilesystem()
         and type(listfiles) == 'function'
 end
 
-function ThemeManager:GetOption(Name)
+function ThemeHelper:GetOption(Name)
     local Options = (self.Library and self.Library.Options) or Shared('Options')
     if not Options then
         return nil
@@ -46,18 +46,18 @@ function ThemeManager:GetOption(Name)
     return Options[Name]
 end
 
-function ThemeManager:Notify(Text, Time)
+function ThemeHelper:Notify(Text, Time)
     if self.Library and self.Library.Notify then
         self.Library:Notify(Text, Time)
     end
 end
 
-function ThemeManager:SetLibrary(Library)
+function ThemeHelper:SetLibrary(Library)
     self.Library = Library
-    Library.ThemeManager = self
+    Library.ThemeHelper = self
 end
 
-function ThemeManager:ApplyTheme(Theme)
+function ThemeHelper:ApplyTheme(Theme)
     if not Theme or not self.Library then
         return
     end
@@ -84,7 +84,7 @@ function ThemeManager:ApplyTheme(Theme)
     self:ThemeUpdate()
 end
 
-function ThemeManager:ThemeUpdate()
+function ThemeHelper:ThemeUpdate()
     if not self.Library then
         return
     end
@@ -100,7 +100,7 @@ function ThemeManager:ThemeUpdate()
     self.Library:UpdateColorsUsingRegistry()
 end
 
-function ThemeManager:ReadDefault()
+function ThemeHelper:ReadDefault()
     if not self:HasFilesystem() then
         return nil
     end
@@ -124,7 +124,7 @@ function ThemeManager:ReadDefault()
     return Content
 end
 
-function ThemeManager:LoadDefault()
+function ThemeHelper:LoadDefault()
     if not self.Library then
         return
     end
@@ -140,7 +140,7 @@ function ThemeManager:LoadDefault()
         Theme = self.DefaultTheme
     end
 
-    local Dropdown = self:GetOption('ThemeManager_ThemeList')
+    local Dropdown = self:GetOption('ThemeHelper_ThemeList')
 
     if self.BuiltInThemes[Theme] then
         if Dropdown then
@@ -153,7 +153,7 @@ function ThemeManager:LoadDefault()
     end
 end
 
-function ThemeManager:SaveDefault(Theme)
+function ThemeHelper:SaveDefault(Theme)
     if not Theme then
         return
     end
@@ -166,8 +166,8 @@ function ThemeManager:SaveDefault(Theme)
     pcall(writefile, self.Folder .. '/themes/default.txt', Theme)
 end
 
-function ThemeManager:CreateThemeManager(Groupbox)
-    assert(self.Library, 'Must set ThemeManager.Library first!')
+function ThemeHelper:CreateThemeSection(Groupbox)
+    assert(self.Library, 'Must set ThemeHelper.Library first!')
 
     Groupbox:AddLabel('background color'):AddColorPicker('BackgroundColor', { Default = self.Library.BackgroundColor })
     Groupbox:AddLabel('main color'):AddColorPicker('MainColor', { Default = self.Library.MainColor })
@@ -186,10 +186,10 @@ function ThemeManager:CreateThemeManager(Groupbox)
     end)
 
     Groupbox:AddDivider()
-    Groupbox:AddDropdown('ThemeManager_ThemeList', { Text = 'theme list', Values = Themes, Default = 1 })
+    Groupbox:AddDropdown('ThemeHelper_ThemeList', { Text = 'theme list', Values = Themes, Default = 1 })
 
     Groupbox:AddButton('set as default', function()
-        local Selected = self:GetOption('ThemeManager_ThemeList')
+        local Selected = self:GetOption('ThemeHelper_ThemeList')
         if not Selected or not Selected.Value then
             return
         end
@@ -198,7 +198,7 @@ function ThemeManager:CreateThemeManager(Groupbox)
         self:Notify(string.format('set default theme to %q', Selected.Value))
     end)
 
-    local ThemeList = self:GetOption('ThemeManager_ThemeList')
+    local ThemeList = self:GetOption('ThemeHelper_ThemeList')
     if ThemeList then
         ThemeList:OnChanged(function(Value)
             self:ApplyTheme(Value)
@@ -206,8 +206,8 @@ function ThemeManager:CreateThemeManager(Groupbox)
     end
 
     Groupbox:AddDivider()
-    Groupbox:AddInput('ThemeManager_CustomThemeName', { Text = 'custom theme name' })
-    Groupbox:AddDropdown('ThemeManager_CustomThemeList', {
+    Groupbox:AddInput('ThemeHelper_CustomThemeName', { Text = 'custom theme name' })
+    Groupbox:AddDropdown('ThemeHelper_CustomThemeList', {
         Text = 'custom themes',
         Values = self:ReloadCustomThemes(),
         AllowNull = true,
@@ -216,25 +216,25 @@ function ThemeManager:CreateThemeManager(Groupbox)
     Groupbox:AddDivider()
 
     Groupbox:AddButton('save theme', function()
-        local NameInput = self:GetOption('ThemeManager_CustomThemeName')
+        local NameInput = self:GetOption('ThemeHelper_CustomThemeName')
         local Name = NameInput and tostring(NameInput.Value or ''):gsub('^%s+', ''):gsub('%s+$', '') or ''
 
         self:SaveCustomTheme(Name)
 
-        local CustomList = self:GetOption('ThemeManager_CustomThemeList')
+        local CustomList = self:GetOption('ThemeHelper_CustomThemeList')
         if CustomList then
             CustomList:SetValues(self:ReloadCustomThemes())
             CustomList:SetValue(nil)
         end
     end):AddButton('load theme', function()
-        local CustomList = self:GetOption('ThemeManager_CustomThemeList')
+        local CustomList = self:GetOption('ThemeHelper_CustomThemeList')
         if CustomList and CustomList.Value then
             self:ApplyTheme(CustomList.Value)
         end
     end)
 
     Groupbox:AddButton('refresh list', function()
-        local CustomList = self:GetOption('ThemeManager_CustomThemeList')
+        local CustomList = self:GetOption('ThemeHelper_CustomThemeList')
         if CustomList then
             CustomList:SetValues(self:ReloadCustomThemes())
             CustomList:SetValue(nil)
@@ -242,7 +242,7 @@ function ThemeManager:CreateThemeManager(Groupbox)
     end)
 
     Groupbox:AddButton('set as default', function()
-        local CustomList = self:GetOption('ThemeManager_CustomThemeList')
+        local CustomList = self:GetOption('ThemeHelper_CustomThemeList')
         if not CustomList or not CustomList.Value or CustomList.Value == '' then
             return
         end
@@ -251,7 +251,7 @@ function ThemeManager:CreateThemeManager(Groupbox)
         self:Notify(string.format('set default theme to %q', CustomList.Value))
     end)
 
-    ThemeManager:LoadDefault()
+    ThemeHelper:LoadDefault()
 
     local function UpdateTheme()
         self:ThemeUpdate()
@@ -265,7 +265,7 @@ function ThemeManager:CreateThemeManager(Groupbox)
     end
 end
 
-function ThemeManager:GetCustomTheme(Name)
+function ThemeHelper:GetCustomTheme(Name)
     if not Name or not self:HasFilesystem() then
         return nil
     end
@@ -289,7 +289,7 @@ function ThemeManager:GetCustomTheme(Name)
     return Data
 end
 
-function ThemeManager:SaveCustomTheme(Name)
+function ThemeHelper:SaveCustomTheme(Name)
     Name = tostring(Name or ''):gsub('^%s+', ''):gsub('%s+$', '')
     if Name == '' then
         return self:Notify('invalid file name for theme (empty)', 3)
@@ -322,7 +322,7 @@ function ThemeManager:SaveCustomTheme(Name)
     self:Notify(string.format('saved theme %q', Name))
 end
 
-function ThemeManager:ReloadCustomThemes()
+function ThemeHelper:ReloadCustomThemes()
     local Out = {}
     if not self:HasFilesystem() then
         return Out
@@ -346,7 +346,7 @@ function ThemeManager:ReloadCustomThemes()
     return Out
 end
 
-function ThemeManager:BuildFolderTree()
+function ThemeHelper:BuildFolderTree()
     if not self:HasFilesystem() then
         return
     end
@@ -371,37 +371,38 @@ function ThemeManager:BuildFolderTree()
     end
 end
 
-function ThemeManager:SetFolder(Folder)
+function ThemeHelper:SetFolder(Folder)
     self.Folder = Folder
     self:BuildFolderTree()
 end
 
-function ThemeManager:CreateGroupBox(Tab)
-    assert(self.Library, 'Must set ThemeManager.Library first!')
+function ThemeHelper:CreateGroupBox(Tab)
+    assert(self.Library, 'Must set ThemeHelper.Library first!')
     return Tab:AddLeftGroupbox('themes')
 end
 
-function ThemeManager:ApplyToTab(Tab)
+function ThemeHelper:ApplyToTab(Tab)
     local Groupbox = self:CreateGroupBox(Tab)
-    self:CreateThemeManager(Groupbox)
+    self:CreateThemeSection(Groupbox)
 end
 
-function ThemeManager:ApplyToGroupbox(Groupbox)
-    assert(self.Library, 'Must set ThemeManager.Library first!')
-    self:CreateThemeManager(Groupbox)
+function ThemeHelper:ApplyToGroupbox(Groupbox)
+    assert(self.Library, 'Must set ThemeHelper.Library first!')
+    self:CreateThemeSection(Groupbox)
 end
 
-ThemeManager:BuildFolderTree()
+ThemeHelper:BuildFolderTree()
 
 if getgenv then
     local Success, Environment = pcall(getgenv)
     if Success and type(Environment) == 'table' then
         task.defer(function()
-            if not ThemeManager.Library or ThemeManager.Library.IsDefaultNamespace then
-                Environment.ThemeManager = ThemeManager
+            if not ThemeHelper.Library or ThemeHelper.Library.IsDefaultNamespace then
+                Environment.ThemeHelper = ThemeHelper
+                Environment.ThemeManager = ThemeHelper
             end
         end)
     end
 end
 
-return ThemeManager
+return ThemeHelper

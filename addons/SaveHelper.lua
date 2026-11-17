@@ -1,9 +1,9 @@
 local HttpService = game:GetService('HttpService')
 
-local SaveManager = {}
-SaveManager.Folder = 'angelLibSettings'
-SaveManager.Ignore = {}
-SaveManager.Library = nil
+local SaveHelper = {}
+SaveHelper.Folder = 'sillyUISettings'
+SaveHelper.Ignore = {}
+SaveHelper.Library = nil
 
 local function Shared(Name)
     if getgenv then
@@ -14,21 +14,21 @@ local function Shared(Name)
     end
 end
 
-function SaveManager:GetToggles()
+function SaveHelper:GetToggles()
     if self.Library and self.Library.Toggles then
         return self.Library.Toggles
     end
     return Shared('Toggles') or {}
 end
 
-function SaveManager:GetOptions()
+function SaveHelper:GetOptions()
     if self.Library and self.Library.Options then
         return self.Library.Options
     end
     return Shared('Options') or {}
 end
 
-function SaveManager:HasFilesystem()
+function SaveHelper:HasFilesystem()
     return type(isfolder) == 'function'
         and type(makefolder) == 'function'
         and type(isfile) == 'function'
@@ -38,13 +38,13 @@ function SaveManager:HasFilesystem()
         and type(delfile) == 'function'
 end
 
-SaveManager.Parser = {
+SaveHelper.Parser = {
     Toggle = {
         Save = function(Index, Object)
             return { type = 'Toggle', idx = Index, value = Object.Value }
         end,
         Load = function(Index, Data)
-            local Toggles = SaveManager:GetToggles()
+            local Toggles = SaveHelper:GetToggles()
             if Toggles[Index] then
                 Toggles[Index]:SetValue(Data.value)
             end
@@ -55,7 +55,7 @@ SaveManager.Parser = {
             return { type = 'Slider', idx = Index, value = tostring(Object.Value) }
         end,
         Load = function(Index, Data)
-            local Options = SaveManager:GetOptions()
+            local Options = SaveHelper:GetOptions()
             if Options[Index] then
                 Options[Index]:SetValue(Data.value)
             end
@@ -66,7 +66,7 @@ SaveManager.Parser = {
             return { type = 'Dropdown', idx = Index, value = Object.Value, multi = Object.Multi }
         end,
         Load = function(Index, Data)
-            local Options = SaveManager:GetOptions()
+            local Options = SaveHelper:GetOptions()
             if Options[Index] then
                 Options[Index]:SetValue(Data.value)
             end
@@ -82,7 +82,7 @@ SaveManager.Parser = {
             }
         end,
         Load = function(Index, Data)
-            local Options = SaveManager:GetOptions()
+            local Options = SaveHelper:GetOptions()
             local Option = Options[Index]
             if not Option or type(Data.value) ~= 'string' then
                 return
@@ -99,7 +99,7 @@ SaveManager.Parser = {
             return { type = 'KeyPicker', idx = Index, mode = Object.Mode, key = Object.Value }
         end,
         Load = function(Index, Data)
-            local Options = SaveManager:GetOptions()
+            local Options = SaveHelper:GetOptions()
             if Options[Index] and Data.key then
                 Options[Index]:SetValue({ Data.key, Data.mode })
             end
@@ -110,7 +110,7 @@ SaveManager.Parser = {
             return { type = 'Input', idx = Index, text = Object.Value }
         end,
         Load = function(Index, Data)
-            local Options = SaveManager:GetOptions()
+            local Options = SaveHelper:GetOptions()
             if Options[Index] and type(Data.text) == 'string' then
                 Options[Index]:SetValue(Data.text)
             end
@@ -118,18 +118,18 @@ SaveManager.Parser = {
     },
 }
 
-function SaveManager:SetIgnoreIndexes(List)
+function SaveHelper:SetIgnoreIndexes(List)
     for _, Key in next, List do
         self.Ignore[Key] = true
     end
 end
 
-function SaveManager:SetFolder(Folder)
+function SaveHelper:SetFolder(Folder)
     self.Folder = Folder
     self:BuildFolderTree()
 end
 
-function SaveManager:BuildFolderTree()
+function SaveHelper:BuildFolderTree()
     if not self:HasFilesystem() then
         return
     end
@@ -154,7 +154,7 @@ function SaveManager:BuildFolderTree()
     end
 end
 
-function SaveManager:Save(Name)
+function SaveHelper:Save(Name)
     if not Name then
         return false, 'no config file is selected'
     end
@@ -192,7 +192,7 @@ function SaveManager:Save(Name)
     return true
 end
 
-function SaveManager:Load(Name)
+function SaveHelper:Load(Name)
     if not Name then
         return false, 'no config file is selected'
     end
@@ -258,7 +258,7 @@ function SaveManager:Load(Name)
     return true
 end
 
-function SaveManager:IgnoreThemeSettings()
+function SaveHelper:IgnoreThemeSettings()
     self:SetIgnoreIndexes({
         'BackgroundColor',
         'MainColor',
@@ -266,13 +266,13 @@ function SaveManager:IgnoreThemeSettings()
         'OutlineColor',
         'FontColor',
         'RiskColor',
-        'ThemeManager_ThemeList',
-        'ThemeManager_CustomThemeList',
-        'ThemeManager_CustomThemeName',
+        'ThemeHelper_ThemeList',
+        'ThemeHelper_CustomThemeList',
+        'ThemeHelper_CustomThemeName',
     })
 end
 
-function SaveManager:RefreshConfigList()
+function SaveHelper:RefreshConfigList()
     if not self:HasFilesystem() then
         return {}
     end
@@ -296,19 +296,19 @@ function SaveManager:RefreshConfigList()
     return Out
 end
 
-function SaveManager:SetLibrary(Library)
+function SaveHelper:SetLibrary(Library)
     self.Library = Library
-    Library.SaveManager = self
+    Library.SaveHelper = self
 end
 
-function SaveManager:Notify(Text, Time)
+function SaveHelper:Notify(Text, Time)
     if self.Library and self.Library.Notify then
         self.Library:Notify(Text, Time)
     end
 end
 
-function SaveManager:GetConfigName()
-    local Input = self:GetOptions().SaveManager_ConfigName
+function SaveHelper:GetConfigName()
+    local Input = self:GetOptions().SaveHelper_ConfigName
     if not Input then
         return nil
     end
@@ -319,15 +319,15 @@ function SaveManager:GetConfigName()
     return Name
 end
 
-function SaveManager:GetSelectedConfig()
-    local Dropdown = self:GetOptions().SaveManager_ConfigList
+function SaveHelper:GetSelectedConfig()
+    local Dropdown = self:GetOptions().SaveHelper_ConfigList
     if not Dropdown then
         return nil
     end
     return Dropdown.Value
 end
 
-function SaveManager:LoadAutoloadConfig()
+function SaveHelper:LoadAutoloadConfig()
     if not self:HasFilesystem() then
         return
     end
@@ -356,8 +356,8 @@ function SaveManager:LoadAutoloadConfig()
     self:Notify(string.format('auto loaded config %q', Name))
 end
 
-function SaveManager:BuildConfigSection(Tab)
-    assert(self.Library, 'Must set SaveManager.Library')
+function SaveHelper:BuildConfigSection(Tab)
+    assert(self.Library, 'Must set SaveHelper.Library')
 
     local Library = self.Library
     local Section = Tab:AddRightGroupbox('configuration')
@@ -377,8 +377,8 @@ function SaveManager:BuildConfigSection(Tab)
         Button.Label.Text = Text
     end
 
-    Section:AddInput('SaveManager_ConfigName', { Text = 'config name' })
-    Section:AddDropdown('SaveManager_ConfigList', {
+    Section:AddInput('SaveHelper_ConfigName', { Text = 'config name' })
+    Section:AddDropdown('SaveHelper_ConfigList', {
         Text = 'config list',
         Values = self:RefreshConfigList(),
         AllowNull = true,
@@ -398,8 +398,8 @@ function SaveManager:BuildConfigSection(Tab)
         end
 
         self:Notify(string.format('created config %q', Name))
-        Options.SaveManager_ConfigList:SetValues(self:RefreshConfigList())
-        Options.SaveManager_ConfigList:SetValue(nil)
+        Options.SaveHelper_ConfigList:SetValues(self:RefreshConfigList())
+        Options.SaveHelper_ConfigList:SetValue(nil)
     end):AddButton('load config', function()
         local Name = self:GetSelectedConfig()
         local Loaded, Error = self:Load(Name)
@@ -489,8 +489,8 @@ function SaveManager:BuildConfigSection(Tab)
             self:Notify('config file not found')
         end
 
-        Options.SaveManager_ConfigList:SetValues(self:RefreshConfigList())
-        Options.SaveManager_ConfigList:SetValue(nil)
+        Options.SaveHelper_ConfigList:SetValues(self:RefreshConfigList())
+        Options.SaveHelper_ConfigList:SetValue(nil)
     end)
 
     task.defer(function()
@@ -505,8 +505,8 @@ function SaveManager:BuildConfigSection(Tab)
     end)
 
     Section:AddButton('refresh list', function()
-        Options.SaveManager_ConfigList:SetValues(self:RefreshConfigList())
-        Options.SaveManager_ConfigList:SetValue(nil)
+        Options.SaveHelper_ConfigList:SetValues(self:RefreshConfigList())
+        Options.SaveHelper_ConfigList:SetValue(nil)
     end)
 
     Section:AddButton('set autoload', function()
@@ -520,7 +520,7 @@ function SaveManager:BuildConfigSection(Tab)
         end
 
         pcall(writefile, self.Folder .. '/settings/autoload.txt', Name)
-        SaveManager.AutoloadLabel:SetText('current autoload config: ' .. Name)
+        SaveHelper.AutoloadLabel:SetText('current autoload config: ' .. Name)
         self:Notify(string.format('set %q to auto load', Name))
     end):AddButton('remove autoload', function()
         if not self:HasFilesystem() then
@@ -533,11 +533,11 @@ function SaveManager:BuildConfigSection(Tab)
             pcall(delfile, Path)
         end
 
-        SaveManager.AutoloadLabel:SetText('current autoload config: none')
+        SaveHelper.AutoloadLabel:SetText('current autoload config: none')
         self:Notify('removed autoload')
     end)
 
-    SaveManager.AutoloadLabel = Section:AddLabel('current autoload config: none', true)
+    SaveHelper.AutoloadLabel = Section:AddLabel('current autoload config: none', true)
 
     if self:HasFilesystem() then
         local Path = self.Folder .. '/settings/autoload.txt'
@@ -547,26 +547,27 @@ function SaveManager:BuildConfigSection(Tab)
             if Read and type(Name) == 'string' then
                 Name = Name:gsub('^%s+', ''):gsub('%s+$', '')
                 if Name ~= '' then
-                    SaveManager.AutoloadLabel:SetText('current autoload config: ' .. Name)
+                    SaveHelper.AutoloadLabel:SetText('current autoload config: ' .. Name)
                 end
             end
         end
     end
 
-    self:SetIgnoreIndexes({ 'SaveManager_ConfigList', 'SaveManager_ConfigName' })
+    self:SetIgnoreIndexes({ 'SaveHelper_ConfigList', 'SaveHelper_ConfigName' })
 end
 
-SaveManager:BuildFolderTree()
+SaveHelper:BuildFolderTree()
 
 if getgenv then
     local Success, Environment = pcall(getgenv)
     if Success and type(Environment) == 'table' then
         task.defer(function()
-            if not SaveManager.Library or SaveManager.Library.IsDefaultNamespace then
-                Environment.SaveManager = SaveManager
+            if not SaveHelper.Library or SaveHelper.Library.IsDefaultNamespace then
+                Environment.SaveHelper = SaveHelper
+                Environment.SaveManager = SaveHelper
             end
         end)
     end
 end
 
-return SaveManager
+return SaveHelper
