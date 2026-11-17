@@ -28,9 +28,35 @@ local function GetGuiParent()
     return LocalPlayer:WaitForChild('PlayerGui')
 end
 
+local function GetEnv()
+    if getgenv then
+        return getgenv()
+    end
+    return _G
+end
+
+local RequestedNamespace = ...
+local Env = GetEnv()
+local Namespace = type(RequestedNamespace) == 'string' and RequestedNamespace
+    or (type(Env.SillyUINamespace) == 'string' and Env.SillyUINamespace)
+    or 'silly'
+local IsDefaultNamespace = Namespace == 'silly'
+local GuiSuffix = IsDefaultNamespace and '' or ('_' .. Namespace)
+
+local Libraries = Env.SillyLibraries
+if type(Libraries) ~= 'table' then
+    Libraries = {}
+    Env.SillyLibraries = Libraries
+end
+
+local Existing = Libraries[Namespace]
+if type(Existing) == 'table' and Existing.IsSillyLibrary and not Existing.Unloaded then
+    return Existing
+end
+
 local ScreenGui = Instance.new('ScreenGui');
 ProtectGui(ScreenGui);
-ScreenGui.Name = 'angel';
+ScreenGui.Name = 'angel' .. GuiSuffix;
 ScreenGui.IgnoreGuiInset = true;
 ScreenGui.ResetOnSpawn = false;
 ScreenGui.DisplayOrder = 999;
@@ -39,16 +65,6 @@ ScreenGui.Parent = GetGuiParent();
 
 local Toggles = {};
 local Options = {};
-
-local function GetEnv()
-    if getgenv then
-        return getgenv()
-    end
-    return _G
-end
-
-GetEnv().Toggles = Toggles;
-GetEnv().Options = Options;
 
 local Library = {
     Registry = {};
@@ -76,6 +92,10 @@ local Library = {
 
     Signals = {};
     ScreenGui = ScreenGui;
+
+    Namespace = Namespace;
+    IsDefaultNamespace = IsDefaultNamespace;
+    IsSillyLibrary = true;
 
     BuildVersion = '0.1';
     Suffix = '.lua';
@@ -112,11 +132,19 @@ local Library = {
 Library.KeyPickerList = {};
 Library.Toggles = Toggles;
 Library.Options = Options;
-Library.ToggleKey = Enum.KeyCode.RightControl;
+Libraries[Namespace] = Library;
+
+if IsDefaultNamespace then
+    Env.Toggles = Toggles;
+    Env.Options = Options;
+    Env.Library = Library;
+end
+
+Library.ToggleKey = IsDefaultNamespace and Enum.KeyCode.RightControl or Enum.KeyCode.F1;
 Library.CursorEnabled = true;
 
 Library.BlurEffect = Instance.new("BlurEffect")
-Library.BlurEffect.Name = "angelBlur"
+Library.BlurEffect.Name = "angelBlur" .. GuiSuffix
 Library.BlurEffect.Size = 0
 Library.BlurEffect.Enabled = false
 pcall(function() Library.BlurEffect.Parent = Lighting end)
@@ -149,7 +177,7 @@ function Library:SetFontSize(Size)
             end
         end
     end
-    local mobileUI = CoreGui and CoreGui:FindFirstChild('angelMobileUI')
+    local mobileUI = Library.MobileUI
     if mobileUI then
         for _, descendant in pairs(mobileUI:GetDescendants()) do
             if descendant:IsA("TextLabel") or descendant:IsA("TextBox") or descendant:IsA("TextButton") then
@@ -884,6 +912,9 @@ function Library:Unload()
         if Env.Options == Options then Env.Options = nil end
         if Env.Toggles == Toggles then Env.Toggles = nil end
         if Env.Library == Library then Env.Library = nil end
+        if Env.SillyLibraries and Env.SillyLibraries[Namespace] == Library then
+            Env.SillyLibraries[Namespace] = nil
+        end
     end
 end
 
@@ -5244,7 +5275,7 @@ function Library:CreateWindow(...)
             if Input.KeyCode.Name == Name then
                 task.spawn(Library.Toggle);
             end
-        elseif Input.KeyCode == Library.ToggleKey or (Input.KeyCode == Enum.KeyCode.RightShift and (not Processed)) then
+        elseif Input.KeyCode == Library.ToggleKey or (Library.IsDefaultNamespace and Input.KeyCode == Enum.KeyCode.RightShift and (not Processed)) then
             task.spawn(Library.Toggle);
         end
     end))
@@ -5302,7 +5333,7 @@ Library:GiveSignal(Players.PlayerRemoving:Connect(OnPlayerChange));
 
 if InputService.TouchEnabled then
     local MobileGui = Instance.new('ScreenGui')
-    MobileGui.Name = 'angelMobileUI'
+    MobileGui.Name = 'angelMobileUI' .. GuiSuffix
     MobileGui.IgnoreGuiInset = true
     MobileGui.ResetOnSpawn = false
     MobileGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
@@ -5468,5 +5499,4 @@ if InputService.TouchEnabled then
     end
 end
 
-GetEnv().Library = Library
 return Library

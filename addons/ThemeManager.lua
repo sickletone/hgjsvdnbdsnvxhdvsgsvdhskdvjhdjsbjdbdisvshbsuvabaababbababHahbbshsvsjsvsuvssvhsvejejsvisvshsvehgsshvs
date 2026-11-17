@@ -396,7 +396,11 @@ ThemeManager:BuildFolderTree()
 if getgenv then
     local Success, Environment = pcall(getgenv)
     if Success and type(Environment) == 'table' then
-        Environment.ThemeManager = ThemeManager
+        task.defer(function()
+            if not ThemeManager.Library or ThemeManager.Library.IsDefaultNamespace then
+                Environment.ThemeManager = ThemeManager
+            end
+        end)
     end
 end
 

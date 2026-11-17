@@ -10,16 +10,23 @@ local repo = "https://raw.githubusercontent.com/sickletone/hgjsvdnbdsnvxhdvsgsvd
 --
 -- The loader below fetches this fork from GitHub, so keep the repo in sync.
 
-local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
+-- Change this namespace to run this fork beside another copy of the library.
+-- Use "silly" if you need the legacy getgenv().Library/Options/Toggles globals.
+local NAMESPACE = "silly-fork"
+local Library = loadstring(game:HttpGet(repo .. "Library.lua"))(NAMESPACE)
 local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
 local SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
 
-local Options = getgenv().Options
-local Toggles = getgenv().Toggles
+local Options = Library.Options
+local Toggles = Library.Toggles
 
 Library.ShowToggleFrameInKeybinds = true
 Library.ShowCustomCursor = true
 Library.NotifySide = "Left"
+
+if not Library.IsDefaultNamespace then
+	Library.ToggleKey = Enum.KeyCode.F1
+end
 
 -- CALLBACK NOTE:
 -- Passing callbacks via the initial element parameters works, but using
@@ -680,7 +687,7 @@ WatermarkToggle = MenuGroup:AddToggle("ShowWatermark", {
 
 MenuGroup:AddDivider()
 MenuGroup:AddLabel("Menu bind"):AddKeyPicker("MenuKeybind", {
-	Default = "RightShift",
+	Default = Library.IsDefaultNamespace and "RightShift" or "F1",
 	NoUI = true,
 	Text = "Menu keybind",
 })
@@ -730,8 +737,9 @@ ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
 SaveManager:IgnoreThemeSettings()
 SaveManager:SetIgnoreIndexes({ "MenuKeybind", "MenuDPI" })
-ThemeManager:SetFolder("silly.lua")
-SaveManager:SetFolder("silly.lua/example")
+local DataFolder = Library.IsDefaultNamespace and "silly.lua" or ("silly.lua/" .. Library.Namespace)
+ThemeManager:SetFolder(DataFolder)
+SaveManager:SetFolder(DataFolder .. "/example")
 ThemeManager:ApplyToTab(Tabs["UI Settings"])
 SaveManager:BuildConfigSection(Tabs["UI Settings"])
 SaveManager:LoadAutoloadConfig()

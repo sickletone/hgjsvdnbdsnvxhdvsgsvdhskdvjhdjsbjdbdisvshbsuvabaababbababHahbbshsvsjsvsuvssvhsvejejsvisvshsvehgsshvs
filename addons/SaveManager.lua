@@ -561,7 +561,11 @@ SaveManager:BuildFolderTree()
 if getgenv then
     local Success, Environment = pcall(getgenv)
     if Success and type(Environment) == 'table' then
-        Environment.SaveManager = SaveManager
+        task.defer(function()
+            if not SaveManager.Library or SaveManager.Library.IsDefaultNamespace then
+                Environment.SaveManager = SaveManager
+            end
+        end)
     end
 end
 
