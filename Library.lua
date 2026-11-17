@@ -3586,6 +3586,8 @@ do
         end;
 
         function Dropdown:OpenDropdown()
+            RecalculateListPosition();
+            RecalculateListSize();
             ListOuter.Visible = true;
             Library.OpenedFrames[ListOuter] = true;
             DropdownArrow.Rotation = 180;
