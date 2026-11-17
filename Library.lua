@@ -1034,6 +1034,7 @@ do
         ColorPicker:SetHSVFromRGB(ColorPicker.Value);
         local DisplayFrame = Library:Create('Frame', {
             BackgroundColor3 = ColorPicker.Value;
+            BackgroundTransparency = 1;
             BorderColor3 = Library:GetDarkerColor(ColorPicker.Value);
             BorderMode = Enum.BorderMode.Inset;
             Size = UDim2.new(0, 28, 0, 14);
@@ -1045,7 +1046,14 @@ do
             Size = UDim2.new(0, 27, 0, 13);
             ZIndex = 5;
             Image = 'http://www.roblox.com/asset/?id=12977615774';
-            Visible = not not Info.Transparency;
+            Visible = false;
+            Parent = DisplayFrame;
+        });
+        local SwatchFrame = Library:Create('Frame', {
+            BackgroundColor3 = ColorPicker.Value;
+            BorderSizePixel = 0;
+            Size = UDim2.new(1, 0, 1, 0);
+            ZIndex = 6;
             Parent = DisplayFrame;
         });
 
@@ -1222,7 +1230,7 @@ do
             PlaceholderText = 'RGB color',
             TextColor3 = Library.FontColor
         });
-        local TransparencyBoxOuter, TransparencyBoxInner, TransparencyCursor;
+        local TransparencyBoxOuter, TransparencyBoxInner, TransparencyColor, TransparencyCursor;
 
         if Info.Transparency then
             TransparencyBoxOuter = Library:Create('Frame', {
@@ -1234,6 +1242,7 @@ do
             });
             TransparencyBoxInner = Library:Create('Frame', {
                 BackgroundColor3 = ColorPicker.Value;
+                BackgroundTransparency = 1;
                 BorderColor3 = Library.OutlineColor;
                 BorderMode = Enum.BorderMode.Inset;
                 Size = UDim2.new(1, 0, 1, 0);
@@ -1249,12 +1258,26 @@ do
                 ZIndex = 20;
                 Parent = TransparencyBoxInner;
             });
+            TransparencyColor = Library:Create('Frame', {
+                BackgroundColor3 = ColorPicker.Value;
+                BorderSizePixel = 0;
+                Size = UDim2.new(1, 0, 1, 0);
+                ZIndex = 21;
+                Parent = TransparencyBoxInner;
+            });
+            Library:Create('UIGradient', {
+                Transparency = NumberSequence.new({
+                    NumberSequenceKeypoint.new(0, 1),
+                    NumberSequenceKeypoint.new(1, 0)
+                });
+                Parent = TransparencyColor;
+            });
             TransparencyCursor = Library:Create('Frame', {
                 BackgroundColor3 = Color3.new(1, 1, 1);
                 AnchorPoint = Vector2.new(0.5, 0);
                 BorderColor3 = Color3.new(0, 0, 0);
                 Size = UDim2.new(0, 1, 1, 0);
-                ZIndex = 21;
+                ZIndex = 22;
                 Parent = TransparencyBoxInner;
             });
         end;
@@ -1433,13 +1456,12 @@ do
             ColorPicker.Value = Color3.fromHSV(ColorPicker.Hue, ColorPicker.Sat, ColorPicker.Vib);
             SatVibMap.BackgroundColor3 = Color3.fromHSV(ColorPicker.Hue, 1, 1);
 
-            Library:Create(DisplayFrame, {
-                BackgroundColor3 = ColorPicker.Value;
-                BackgroundTransparency = ColorPicker.Transparency;
-                BorderColor3 = Library:GetDarkerColor(ColorPicker.Value);
-            });
+            SwatchFrame.BackgroundColor3 = ColorPicker.Value;
+            SwatchFrame.BackgroundTransparency = ColorPicker.Transparency;
+            CheckerFrame.Visible = ColorPicker.Transparency > 0;
+            DisplayFrame.BorderColor3 = Library:GetDarkerColor(ColorPicker.Value);
             if TransparencyBoxInner then
-                TransparencyBoxInner.BackgroundColor3 = ColorPicker.Value;
+                TransparencyColor.BackgroundColor3 = ColorPicker.Value;
                 TransparencyCursor.Position = UDim2.new(1 - ColorPicker.Transparency, 0, 0, 0);
             end;
 
