@@ -1032,11 +1032,8 @@ do
         end;
 
         ColorPicker:SetHSVFromRGB(ColorPicker.Value);
-        local DisplayFrame = Library:Create('Frame', {
-            BackgroundColor3 = ColorPicker.Value;
+        local SwatchContainer = Library:Create('Frame', {
             BackgroundTransparency = 1;
-            BorderColor3 = Library:GetDarkerColor(ColorPicker.Value);
-            BorderMode = Enum.BorderMode.Inset;
             Size = UDim2.new(0, 28, 0, 14);
             ZIndex = 6;
             Parent = ToggleLabel;
@@ -1047,14 +1044,15 @@ do
             ZIndex = 5;
             Image = 'http://www.roblox.com/asset/?id=12977615774';
             Visible = false;
-            Parent = DisplayFrame;
+            Parent = SwatchContainer;
         });
-        local SwatchFrame = Library:Create('Frame', {
+        local DisplayFrame = Library:Create('Frame', {
             BackgroundColor3 = ColorPicker.Value;
-            BorderSizePixel = 0;
+            BorderColor3 = Library:GetDarkerColor(ColorPicker.Value);
+            BorderMode = Enum.BorderMode.Inset;
             Size = UDim2.new(1, 0, 1, 0);
             ZIndex = 6;
-            Parent = DisplayFrame;
+            Parent = SwatchContainer;
         });
 
         local PickerFrameOuter = Library:Create('Frame', {
@@ -1456,8 +1454,8 @@ do
             ColorPicker.Value = Color3.fromHSV(ColorPicker.Hue, ColorPicker.Sat, ColorPicker.Vib);
             SatVibMap.BackgroundColor3 = Color3.fromHSV(ColorPicker.Hue, 1, 1);
 
-            SwatchFrame.BackgroundColor3 = ColorPicker.Value;
-            SwatchFrame.BackgroundTransparency = ColorPicker.Transparency;
+            DisplayFrame.BackgroundColor3 = ColorPicker.Value;
+            DisplayFrame.BackgroundTransparency = ColorPicker.Transparency;
             CheckerFrame.Visible = ColorPicker.Transparency > 0;
             DisplayFrame.BorderColor3 = Library:GetDarkerColor(ColorPicker.Value);
             if TransparencyBoxInner then
@@ -2747,7 +2745,8 @@ do
                 Available = 239;
             end
 
-            ToggleLabel.Size = UDim2.fromOffset(math.max(28, Available - 23), 13);
+            local LeftInset = math.max(0, ToggleOuter.AbsolutePosition.X - Container.AbsolutePosition.X);
+            ToggleLabel.Size = UDim2.fromOffset(math.max(28, Available - LeftInset - 23), 13);
         end
 
         UpdateToggleWidth();
