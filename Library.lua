@@ -3,6 +3,7 @@ if getgenv().Arcane and getgenv().Arcane.Unload then
 end
 
 local Library = { } do
+    Library.SilentLoad = false
     Library.MobileWidth = 330
     Library.MobileHeight = 520
     Library.MobileTopOffset = 64
@@ -536,9 +537,10 @@ local Library = { } do
         end)
     end
 
-    Library.IsMouseOverFrame = function(Self)
+    Library.IsMouseOverFrame = function(Self, Position)
         local Object = Self.Instance
-        local Position = Vector2.new(Mouse.X, Mouse.Y)
+        if not Object.Visible then return false end
+        Position = Position or Vector2.new(Mouse.X, Mouse.Y)
 
         return Position.X >= Object.AbsolutePosition.X and Position.X <= Object.AbsolutePosition.X + Object.AbsoluteSize.X
         and Position.Y >= Object.AbsolutePosition.Y and Position.Y <= Object.AbsolutePosition.Y + Object.AbsoluteSize.Y
@@ -665,8 +667,31 @@ local Library = { } do
         UpdateScale()
     end
 
+    Library.SetSilentLoad = function(Self, Enabled)
+        Library.SilentLoad = not not Enabled
+
+        if Library.SilentLoad then
+            for _, Window in Library.Windows do
+                Window:SetOpen(false)
+            end
+        end
+    end
+
+    Library.SetMenuVisible = function(Self, Visible)
+        for _, Window in Library.Windows do
+            Window:SetOpen(not not Visible)
+        end
+    end
+
+    Library.Toggle = function(Self)
+        for _, Window in Library.Windows do
+            Window:SetOpen(not Window.IsOpen)
+        end
+    end
+
     Library.Notification = function(Self, Params)
         Params = Params or { }
+        if Library.SilentLoad then return end
 
         local Name = Params.Name or Params.name or "Notification"
         local Description = Params.Description or Params.description or ""
@@ -922,7 +947,7 @@ local Library = { } do
         local Window = {
             Name = Params.Name or Params.name or "ARCANE",
             Logo = Params.Logo or Params.logo or "72939878637463",
-            IsOpen = true,
+            IsOpen = not Library.SilentLoad,
             Pages = { },
             Items = { }
         }
@@ -941,6 +966,7 @@ local Library = { } do
             AnchorPoint = Vector2.new(0, 0),
             Position = UDim2.fromOffset(Viewport.X / (2 * Scale) - Width / 2, StartY),
             Size = UDim2.new(0, Width, 0, Height),
+            Visible = not Library.SilentLoad,
             BorderSizePixel = 0,
             BackgroundColor3 = Library.Theme.Background
         }):AddToTheme({ BackgroundColor3 = "Background" })
@@ -1378,7 +1404,7 @@ local Library = { } do
                 Name = "\0",
                 FontFace = Library.Font,
                 TextColor3 = Library.Theme.Text,
-                Text = "Close",
+                Text = Library.SilentLoad and "Open" or "Close",
                 TextSize = 15,
                 BackgroundTransparency = 1,
                 AnchorPoint = Vector2.new(0, 0.5),
@@ -2539,7 +2565,14 @@ local Library = { } do
 
         local function PopupPosition(ExtraY)
             local Scale = Library:GetScreenScale()
-            return UDim2.fromOffset(Items.Back.Instance.AbsolutePosition.X / Scale, (Items.Back.Instance.AbsolutePosition.Y + Items.Back.Instance.AbsoluteSize.Y + GuiInset + (ExtraY or 0)) / Scale)
+            local Viewport = workspace.CurrentCamera.ViewportSize / Scale
+            local Width = Items.Back.Instance.AbsoluteSize.X / Scale
+            local Height = (Dropdown.SearchBarEnabled and 30 or 0) + math.min(#Dropdown.Options * 25, 125)
+            local X = Items.Back.Instance.AbsolutePosition.X / Scale
+            local Y = (Items.Back.Instance.AbsolutePosition.Y + Items.Back.Instance.AbsoluteSize.Y + GuiInset) / Scale + (ExtraY or 0)
+            X = math.clamp(X, 8, math.max(8, Viewport.X - Width - 8))
+            Y = math.clamp(Y, 8, math.max(8, Viewport.Y - Height - 8))
+            return UDim2.fromOffset(X, Y)
         end
 
         function Dropdown:SetOpen(Bool)
@@ -2547,6 +2580,7 @@ local Library = { } do
 
             Dropdown.IsOpen = Bool
             Dropdown.Debounce = true
+            Dropdown.OpenedAt = os.clock()
             Items.Arrow:Tween({ Rotation = Bool and 180 or 0 })
 
             if Bool then
@@ -2583,7 +2617,7 @@ local Library = { } do
 
         Library:Connect(UserInputService.InputBegan, function(Input)
             if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-                if Dropdown.IsOpen and not Items.Opened:IsMouseOverFrame() and not Items.Back:IsMouseOverFrame() then
+                if Dropdown.IsOpen and (os.clock() - (Dropdown.OpenedAt or 0)) > 0.15 and not Items.Opened:IsMouseOverFrame(Input.Position) and not Items.Back:IsMouseOverFrame(Input.Position) then
                     Dropdown:SetOpen(false)
                 end
             end
@@ -3409,13 +3443,19 @@ local Library = { } do
 
         local function PopupPosition(ExtraY)
             local Scale = Library:GetScreenScale()
-            return UDim2.fromOffset(Items.Swatch.Instance.AbsolutePosition.X / Scale - 176, (Items.Swatch.Instance.AbsolutePosition.Y + Items.Swatch.Instance.AbsoluteSize.Y + GuiInset + (ExtraY or 0)) / Scale)
+            local Viewport = workspace.CurrentCamera.ViewportSize / Scale
+            local X = Items.Swatch.Instance.AbsolutePosition.X / Scale - 176
+            local Y = (Items.Swatch.Instance.AbsolutePosition.Y + Items.Swatch.Instance.AbsoluteSize.Y + GuiInset) / Scale + (ExtraY or 0)
+            X = math.clamp(X, 8, math.max(8, Viewport.X - 210 - 8))
+            Y = math.clamp(Y, 8, math.max(8, Viewport.Y - 210 - 8))
+            return UDim2.fromOffset(X, Y)
         end
 
         function Colorpicker:SetOpen(Bool)
             if Colorpicker.Debounce then return end
             Colorpicker.IsOpen = Bool
             Colorpicker.Debounce = true
+            Colorpicker.OpenedAt = os.clock()
 
             if Bool then
                 Items.Window.Instance.Parent = Library.Holder.Instance
@@ -3448,7 +3488,7 @@ local Library = { } do
 
         Library:Connect(UserInputService.InputBegan, function(Input)
             if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-                if Colorpicker.IsOpen and not Items.Window:IsMouseOverFrame() and not Items.Swatch:IsMouseOverFrame() then
+                if Colorpicker.IsOpen and (os.clock() - (Colorpicker.OpenedAt or 0)) > 0.15 and not Items.Window:IsMouseOverFrame(Input.Position) and not Items.Swatch:IsMouseOverFrame(Input.Position) then
                     Colorpicker:SetOpen(false)
                 end
             end
