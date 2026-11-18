@@ -18,6 +18,12 @@ ThemeHelper.BuiltInThemes = {
     ['Inferno'] = { 10, { FontColor = 'ffffff', MainColor = '141414', AccentColor = 'a34848', BackgroundColor = '181818', OutlineColor = '141414' } },
     ['Neverlose'] = { 11, { FontColor = 'ffffff', MainColor = '242424', AccentColor = '0679b0', BackgroundColor = '1c1c1c', OutlineColor = '373737' } },
     ['GameSense'] = { 12, { FontColor = 'ffffff', MainColor = '181818', AccentColor = '4cb800', BackgroundColor = '141414', OutlineColor = '1f1f1f' } },
+    ['Arcane Dark'] = { 13, { FontColor = 'ffffff', MainColor = '16161a', AccentColor = 'fe0043', BackgroundColor = '101012', OutlineColor = '1e1d22' } },
+    ['Arcane Light'] = { 14, { FontColor = '18181e', MainColor = 'ebebf0', AccentColor = 'fe0043', BackgroundColor = 'e4e4e9', OutlineColor = 'cdcdd6' } },
+    ['Arcane Ocean'] = { 15, { FontColor = 'ebf0f5', MainColor = '14181f', AccentColor = '00aaff', BackgroundColor = '0e1116', OutlineColor = '1c212a' } },
+    ['Arcane Crimson'] = { 16, { FontColor = 'f5ebed', MainColor = '1a1415', AccentColor = 'e62846', BackgroundColor = '120e0f', OutlineColor = '261c1f' } },
+    ['Arcane Emerald'] = { 17, { FontColor = 'ebf5f0', MainColor = '141b17', AccentColor = '00c882', BackgroundColor = '0e1310', OutlineColor = '1c2620' } },
+    ['Arcane Amethyst'] = { 18, { FontColor = 'f0ecf8', MainColor = '18141f', AccentColor = 'aa5aff', BackgroundColor = '110e16', OutlineColor = '231c2e' } },
 }
 
 local function Shared(Name)
@@ -97,6 +103,25 @@ function ThemeHelper:ThemeUpdate()
     end
 
     self.Library.AccentColorDark = self.Library:GetDarkerColor(self.Library.AccentColor)
+
+    if type(self.Library.Theme) == 'table' then
+        local Theme = self.Library.Theme
+        Theme.Background = self.Library.BackgroundColor
+        Theme.Topbar = self.Library.MainColor
+        Theme.Accent = self.Library.AccentColor
+        Theme.Text = self.Library.FontColor
+        Theme.Border = self.Library.OutlineColor
+        Theme.Section = self.Library.SectionColor or Theme.Section
+        Theme.Element = self.Library.ElementColor or Theme.Element
+        Theme.Selected = self.Library.SelectedColor or Theme.Selected
+        Theme.DimText = self.Library.DimColor or Theme.DimText
+        Theme.ToggleOff = self.Library.ToggleOffColor or Theme.ToggleOff
+
+        if self.Library.DeriveTheme then
+            self.Library:DeriveTheme()
+        end
+    end
+
     self.Library:UpdateColorsUsingRegistry()
 end
 

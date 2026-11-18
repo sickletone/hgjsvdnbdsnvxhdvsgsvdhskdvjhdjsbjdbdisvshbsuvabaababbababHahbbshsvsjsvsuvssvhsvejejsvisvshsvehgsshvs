@@ -73,15 +73,36 @@ local Library = {
     HudRegistry = {};
 
     FontColor = Color3.fromRGB(255, 255, 255);
-    MainColor = Color3.fromRGB(21, 21, 20);
-    BackgroundColor = Color3.fromRGB(17, 17, 16);
-    AccentColor = Color3.fromRGB(147, 161, 254);
-    OutlineColor = Color3.fromRGB(31, 30, 31);
+    MainColor = Color3.fromRGB(22, 22, 26);
+    BackgroundColor = Color3.fromRGB(16, 16, 18);
+    AccentColor = Color3.fromRGB(254, 0, 67);
+    OutlineColor = Color3.fromRGB(30, 29, 34);
+    SectionColor = Color3.fromRGB(21, 20, 25);
+    ElementColor = Color3.fromRGB(27, 26, 33);
+    SelectedColor = Color3.fromRGB(29, 28, 37);
+    DimColor = Color3.fromRGB(120, 120, 130);
+    ToggleOffColor = Color3.fromRGB(35, 25, 38);
     RiskColor = Color3.fromRGB(255, 50, 50),
+
+    CornerRadius = {
+        Window = 10;
+        Section = 10;
+        Tab = 8;
+        Element = 6;
+        Dropdown = 4;
+        Notification = 10;
+        Tooltip = 8;
+    };
+
+    Theme = {};
+    Themes = {};
+    ThemeList = {};
+    CurrentTheme = 'Dark';
+    PreviousTheme = 'Dark';
 
     Black = Color3.new(0, 0, 0);
 
-    Font = Enum.Font.SourceSans,
+    Font = Enum.Font.Gotham,
     FontSize = 13,
 
     OpenedFrames = {};
@@ -142,6 +163,122 @@ end
 
 Library.ToggleKey = IsDefaultNamespace and Enum.KeyCode.RightControl or Enum.KeyCode.F1;
 Library.CursorEnabled = true;
+
+Library.Themes = {
+    Dark = {
+        Background = Color3.fromRGB(16, 16, 18); Topbar = Color3.fromRGB(22, 22, 26); Section = Color3.fromRGB(21, 20, 25);
+        Element = Color3.fromRGB(27, 26, 33); Accent = Color3.fromRGB(254, 0, 67); Text = Color3.fromRGB(255, 255, 255);
+        DimText = Color3.fromRGB(120, 120, 130); Border = Color3.fromRGB(30, 29, 34); Selected = Color3.fromRGB(29, 28, 37);
+        ToggleOff = Color3.fromRGB(35, 25, 38);
+    };
+    Light = {
+        Background = Color3.fromRGB(228, 228, 233); Topbar = Color3.fromRGB(235, 235, 240); Section = Color3.fromRGB(245, 245, 249);
+        Element = Color3.fromRGB(230, 230, 236); Accent = Color3.fromRGB(254, 0, 67); Text = Color3.fromRGB(24, 24, 30);
+        DimText = Color3.fromRGB(140, 140, 150); Border = Color3.fromRGB(205, 205, 214); Selected = Color3.fromRGB(216, 216, 224);
+        ToggleOff = Color3.fromRGB(210, 202, 206);
+    };
+    Ocean = {
+        Background = Color3.fromRGB(14, 17, 22); Topbar = Color3.fromRGB(20, 24, 31); Section = Color3.fromRGB(18, 22, 28);
+        Element = Color3.fromRGB(24, 29, 37); Accent = Color3.fromRGB(0, 170, 255); Text = Color3.fromRGB(235, 240, 245);
+        DimText = Color3.fromRGB(90, 100, 115); Border = Color3.fromRGB(28, 33, 42); Selected = Color3.fromRGB(28, 35, 48);
+        ToggleOff = Color3.fromRGB(26, 34, 46);
+    };
+    Crimson = {
+        Background = Color3.fromRGB(18, 14, 15); Topbar = Color3.fromRGB(26, 20, 21); Section = Color3.fromRGB(23, 18, 19);
+        Element = Color3.fromRGB(32, 24, 26); Accent = Color3.fromRGB(230, 40, 70); Text = Color3.fromRGB(245, 235, 237);
+        DimText = Color3.fromRGB(120, 95, 100); Border = Color3.fromRGB(38, 28, 31); Selected = Color3.fromRGB(42, 28, 31);
+        ToggleOff = Color3.fromRGB(40, 26, 30);
+    };
+    Emerald = {
+        Background = Color3.fromRGB(14, 19, 16); Topbar = Color3.fromRGB(20, 27, 23); Section = Color3.fromRGB(18, 24, 20);
+        Element = Color3.fromRGB(24, 33, 28); Accent = Color3.fromRGB(0, 200, 130); Text = Color3.fromRGB(235, 245, 240);
+        DimText = Color3.fromRGB(95, 115, 105); Border = Color3.fromRGB(28, 38, 32); Selected = Color3.fromRGB(28, 44, 36);
+        ToggleOff = Color3.fromRGB(26, 40, 32);
+    };
+    Amethyst = {
+        Background = Color3.fromRGB(17, 14, 22); Topbar = Color3.fromRGB(24, 20, 31); Section = Color3.fromRGB(21, 18, 28);
+        Element = Color3.fromRGB(30, 25, 39); Accent = Color3.fromRGB(170, 90, 255); Text = Color3.fromRGB(240, 236, 248);
+        DimText = Color3.fromRGB(110, 100, 125); Border = Color3.fromRGB(35, 28, 46); Selected = Color3.fromRGB(40, 32, 54);
+        ToggleOff = Color3.fromRGB(36, 28, 48);
+    };
+};
+
+Library.ThemeList = { 'Dark', 'Light', 'Ocean', 'Crimson', 'Emerald', 'Amethyst' };
+Library.ThemeKeys = { 'Background', 'Topbar', 'Section', 'Element', 'Accent', 'Text', 'DimText', 'Border' };
+Library.ThemeOrder = {
+    Background = 'BackgroundColor';
+    Topbar = 'MainColor';
+    Section = 'SectionColor';
+    Element = 'ElementColor';
+    Accent = 'AccentColor';
+    Text = 'FontColor';
+    DimText = 'DimColor';
+    Border = 'OutlineColor';
+    Selected = 'SelectedColor';
+    ToggleOff = 'ToggleOffColor';
+};
+Library.Theme = table.clone(Library.Themes.Dark);
+Library.Directory = 'sillyUISettings';
+Library.ConfigFolder = 'sillyUISettings/configs';
+
+function Library:DeriveTheme()
+    local Theme = Library.Theme;
+    Theme.Inline = Theme.Topbar;
+    Theme.AccentDark = Theme.Accent;
+    Theme.Divider = Theme.Border;
+    Theme.DimIcon = Theme.DimText:Lerp(Theme.Background, 0.45);
+    Theme.SliderBack = Theme.Element;
+    Theme.DropdownBack = Theme.Element;
+    Theme.DropdownSelected = Theme.Element:Lerp(Theme.Text, 0.045);
+    Theme.ToggleOn = Theme.Accent:Lerp(Theme.Section, 0.72);
+    Theme.ToggleOffCircle = Theme.ToggleOff:Lerp(Theme.DimText, 0.5);
+end;
+
+function Library:SyncTheme()
+    local Theme = Library.Theme;
+    for Key, Field in next, Library.ThemeOrder do
+        if Theme[Key] then
+            Library[Field] = Theme[Key];
+        end;
+    end;
+
+    Library.AccentColorDark = Library:GetDarkerColor(Library.AccentColor);
+end;
+
+function Library:SetTheme(Name)
+    local Theme = Library.Themes[Name];
+    if not Theme then
+        return false;
+    end;
+
+    Library.CurrentTheme = Name;
+    if Name ~= 'Light' then
+        Library.PreviousTheme = Name;
+    end;
+
+    for Key, Color in next, Theme do
+        Library.Theme[Key] = Color;
+    end;
+
+    Library:DeriveTheme();
+    Library:SyncTheme();
+
+    if Library.UpdateColorsUsingRegistry then
+        Library:UpdateColorsUsingRegistry();
+    end;
+
+    return true;
+end;
+
+function Library:ApplyTheme(Name)
+    return Library:SetTheme(Name or Library.CurrentTheme);
+end;
+
+function Library:GetThemeList()
+    return table.clone(Library.ThemeList);
+end;
+
+Library:DeriveTheme();
 
 Library.BlurEffect = Instance.new("BlurEffect")
 Library.BlurEffect.Name = "sillyBlur" .. GuiSuffix
@@ -253,13 +390,28 @@ function Library:AttemptSave()
     end;
 end;
 
+function Library:AddCorner(Instance, Radius)
+    return Library:Create('UICorner', {
+        CornerRadius = UDim.new(0, Radius or Library.CornerRadius.Element);
+        Parent = Instance;
+    });
+end;
+
 function Library:Create(Class, Properties)
     local _Instance = Class;
     if type(Class) == 'string' then
         _Instance = Instance.new(Class);
     end;
     for Property, Value in next, Properties do
+        if Property == 'Corner' then
+            continue;
+        end;
         _Instance[Property] = Value;
+    end;
+
+    local Corner = Properties.Corner;
+    if Corner ~= false and (Corner ~= nil or (Properties.BorderMode == Enum.BorderMode.Inset)) then
+        Library:AddCorner(_Instance, type(Corner) == 'number' and Corner or Library.CornerRadius.Element);
     end;
 
     if _Instance:IsA("TextLabel") or _Instance:IsA("TextBox") or _Instance:IsA("TextButton") then
@@ -592,12 +744,13 @@ end;
 function Library:AddToolTip(InfoStr, HoverInstance, DisabledStr, IsDisabled)
     local X, Y = Library:GetTextBounds(InfoStr, Library.Font, Library.FontSize);
     local Tooltip = Library:Create('Frame', {
-        BackgroundColor3 = Library.MainColor,
+        BackgroundColor3 = Library.SectionColor,
         BorderColor3 = Library.OutlineColor,
 
-        Size = UDim2.fromOffset(X + 5, Y + 4),
+        Size = UDim2.fromOffset(X + 6, Y + 5),
         ZIndex = 100,
         Parent = Library.ScreenGui,
+        Corner = Library.CornerRadius.Tooltip,
 
         Visible = false,
     })
@@ -614,7 +767,7 @@ function Library:AddToolTip(InfoStr, HoverInstance, DisabledStr, IsDisabled)
         Parent = Tooltip;
     });
     Library:AddToRegistry(Tooltip, {
-        BackgroundColor3 = 'MainColor';
+        BackgroundColor3 = 'SectionColor';
         BorderColor3 = 'OutlineColor';
     });
     Library:AddToRegistry(Label, {
@@ -3226,12 +3379,13 @@ do
             BorderColor3 = 'Black';
         });
         local DropdownInner = Library:Create('Frame', {
-            BackgroundColor3 = Library.MainColor;
+            BackgroundColor3 = Library.ElementColor;
             BorderColor3 = Library.OutlineColor;
             BorderMode = Enum.BorderMode.Inset;
             Size = UDim2.new(1, 0, 1, 0);
             ZIndex = 6;
             Parent = DropdownOuter;
+            Corner = Library.CornerRadius.Dropdown;
         });
         Library:AddToRegistry(DropdownInner, {
             BackgroundColor3 = 'MainColor';
@@ -3312,6 +3466,7 @@ do
             Size = UDim2.new(1, 0, 1, 0);
             ZIndex = 21;
             Parent = ListOuter;
+            Corner = Library.CornerRadius.Dropdown;
         });
         Library:AddToRegistry(ListInner, {
             BackgroundColor3 = 'MainColor';
@@ -4207,15 +4362,16 @@ function Library:Notify(Text, Time, SoundId)
         Parent = Library.NotificationArea;
     });
     local NotifyInner = Library:Create('Frame', {
-        BackgroundColor3 = Library.MainColor;
+        BackgroundColor3 = Library.SectionColor;
         BorderColor3 = Library.OutlineColor;
         BorderMode = Enum.BorderMode.Inset;
         Size = UDim2.new(1, 0, 1, 0);
         ZIndex = 101;
         Parent = NotifyOuter;
+        Corner = Library.CornerRadius.Notification;
     });
     Library:AddToRegistry(NotifyInner, {
-        BackgroundColor3 = 'MainColor';
+        BackgroundColor3 = 'SectionColor';
         BorderColor3 = 'OutlineColor';
     }, true);
     local InnerFrame = Library:Create('Frame', {
@@ -4228,8 +4384,8 @@ function Library:Notify(Text, Time, SoundId)
     });
     local Gradient = Library:Create('UIGradient', {
         Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, Library:GetDarkerColor(Library.MainColor)),
-            ColorSequenceKeypoint.new(1, Library.MainColor),
+            ColorSequenceKeypoint.new(0, Library:GetDarkerColor(Library.SectionColor)),
+            ColorSequenceKeypoint.new(1, Library.SectionColor),
         });
         Rotation = -90;
         Parent = InnerFrame;
@@ -4237,8 +4393,8 @@ function Library:Notify(Text, Time, SoundId)
     Library:AddToRegistry(Gradient, {
         Color = function()
             return ColorSequence.new({
-                ColorSequenceKeypoint.new(0, Library:GetDarkerColor(Library.MainColor)),
-                ColorSequenceKeypoint.new(1, Library.MainColor),
+                ColorSequenceKeypoint.new(0, Library:GetDarkerColor(Library.SectionColor)),
+                ColorSequenceKeypoint.new(1, Library.SectionColor),
             });
         end
     });
@@ -4371,6 +4527,7 @@ function Library:CreateWindow(...)
         ZIndex = Mini and 2 or 1;
         Parent = ScreenGui;
     });
+    Library:AddCorner(Outer, Library.CornerRadius.Window);
     local WindowScale = tonumber(Config.Scale) or Library.Scale or 1;
     local WindowScaleObject = Library:Create('UIScale', {
         Scale = WindowScale;
@@ -4403,6 +4560,7 @@ function Library:CreateWindow(...)
         Size = UDim2.new(1, -2, 1, -2);
         ZIndex = 1;
         Parent = Outer;
+        Corner = Library.CornerRadius.Window - 1;
     });
     Library:AddToRegistry(Inner, {
         BackgroundColor3 = 'MainColor';
@@ -4473,6 +4631,7 @@ function Library:CreateWindow(...)
         ZIndex = 1;
         Parent = Inner;
     });
+    Library:AddCorner(TabBarOuter, Library.CornerRadius.Tab);
     Library:AddToRegistry(TabBarOuter, {
         BackgroundColor3 = 'BackgroundColor';
         BorderColor3 = 'OutlineColor';
@@ -4543,6 +4702,7 @@ function Library:CreateWindow(...)
         ZIndex = 1;
         Parent = Inner;
     });
+    Library:AddCorner(MainSectionOuter, Library.CornerRadius.Section);
     Library:AddToRegistry(MainSectionOuter, {
         BackgroundColor3 = 'BackgroundColor';
         BorderColor3 = 'OutlineColor';
@@ -4566,6 +4726,7 @@ function Library:CreateWindow(...)
         Size = UDim2.new(1, -16, 1, -16);
         ZIndex = 2;
         Parent = MainSectionInner;
+        Corner = Library.CornerRadius.Tab;
     });
     Library:AddToRegistry(TabContainer, {
         BackgroundColor3 = 'MainColor';
@@ -4647,6 +4808,7 @@ function Library:CreateWindow(...)
             Size = UDim2.new(0, TabButtonWidth + 8 + 4, 1, 0);
             ZIndex = 1;
             Parent = TabArea;
+            Corner = Library.CornerRadius.Tab;
         });
         Library:AddToRegistry(TabButton, {
             BackgroundColor3 = 'BackgroundColor';
@@ -4764,8 +4926,8 @@ function Library:CreateWindow(...)
             end;
 
             Blocker.BackgroundTransparency = 0;
-            TabButton.BackgroundColor3 = Library.MainColor;
-            Library.RegistryMap[TabButton].Properties.BackgroundColor3 = 'MainColor';
+            TabButton.BackgroundColor3 = Library.SelectedColor;
+            Library.RegistryMap[TabButton].Properties.BackgroundColor3 = 'SelectedColor';
             TabFrame.Visible = true;
             TabIndicator.Visible = true;
 
@@ -4836,6 +4998,7 @@ function Library:CreateWindow(...)
                 Size = UDim2.fromOffset(Library:GetTextBounds(Name, Library.Font, Library.FontSize) + 16, 24);
                 ZIndex = 5;
                 Parent = Tab.SubTabBarInner;
+                Corner = Library.CornerRadius.Tab - 2;
             });
             Library:AddToRegistry(Button, { BackgroundColor3 = 'BackgroundColor' });
             local ButtonLabel = Library:CreateLabel({
@@ -4898,8 +5061,8 @@ function Library:CreateWindow(...)
                 end
 
                 Content.Visible = true;
-                Button.BackgroundColor3 = Library.MainColor;
-                Library.RegistryMap[Button].Properties.BackgroundColor3 = 'MainColor';
+                Button.BackgroundColor3 = Library.SelectedColor;
+                Library.RegistryMap[Button].Properties.BackgroundColor3 = 'SelectedColor';
                 Indicator.Visible = true;
 
                 ActiveSubTab = SubTab;
@@ -4954,45 +5117,53 @@ function Library:CreateWindow(...)
                 Size = UDim2.new(1, 0, 0, 507 + 2);
                 ZIndex = 2;
                 Parent = Info.Side == 1 and (Info.Left or ActiveLeft) or (Info.Right or ActiveRight);
+                Corner = Library.CornerRadius.Section;
             });
             Library:AddToRegistry(BoxOuter, {
                 BackgroundColor3 = 'BackgroundColor';
                 BorderColor3 = 'OutlineColor';
             });
             local BoxInner = Library:Create('Frame', {
-                BackgroundColor3 = Library.BackgroundColor;
+                BackgroundColor3 = Library.SectionColor;
                 BorderColor3 = Color3.new(0, 0, 0);
                 Size = UDim2.new(1, -2, 1, -2);
                 Position = UDim2.new(0, 1, 0, 1);
                 ZIndex = 4;
                 Parent = BoxOuter;
+                Corner = Library.CornerRadius.Section - 1;
             });
             Library:AddToRegistry(BoxInner, {
-                BackgroundColor3 = 'BackgroundColor';
+                BackgroundColor3 = 'SectionColor';
             });
-            local Highlight = Library:Create('Frame', {
-                BackgroundColor3 = Library.AccentColor;
+            local Divider = Library:Create('Frame', {
+                BackgroundColor3 = Library.OutlineColor;
                 BorderSizePixel = 0;
-                Size = UDim2.new(1, 0, 0, 2);
+                Position = UDim2.new(0, 8, 0, 23);
+                Size = UDim2.new(1, -16, 0, 1);
                 ZIndex = 5;
                 Parent = BoxInner;
             });
-            Library:AddToRegistry(Highlight, {
-                BackgroundColor3 = 'AccentColor';
+            Library:AddToRegistry(Divider, {
+                BackgroundColor3 = 'OutlineColor';
             });
             local GroupboxLabel = Library:CreateLabel({
-                Size = UDim2.new(1, 0, 0, 18);
-                Position = UDim2.new(0, 4, 0, 2);
+                Size = UDim2.new(1, -16, 0, 22);
+                Position = UDim2.new(0, 8, 0, 1);
                 TextSize = Library.FontSize;
                 Text = Info.Name;
+                TextColor3 = Library.DimColor;
                 TextXAlignment = Enum.TextXAlignment.Left;
                 ZIndex = 5;
                 Parent = BoxInner;
             });
+            Library:RemoveFromRegistry(GroupboxLabel);
+            Library:AddToRegistry(GroupboxLabel, {
+                TextColor3 = 'DimColor';
+            });
             local Container = Library:Create('Frame', {
                 BackgroundTransparency = 1;
-                Position = UDim2.new(0, 4, 0, 20);
-                Size = UDim2.new(1, -4, 1, -20);
+                Position = UDim2.new(0, 4, 0, 27);
+                Size = UDim2.new(1, -8, 1, -27);
                 ZIndex = 1;
                 Parent = BoxInner;
             });
@@ -5009,7 +5180,7 @@ function Library:CreateWindow(...)
                     end;
                 end;
 
-                BoxOuter.Size = UDim2.new(1, 0, 0, 20 + Size + 2 + 2);
+                BoxOuter.Size = UDim2.new(1, 0, 0, 27 + Size + 4);
             end;
 
             Groupbox.Container = Container;
@@ -5042,26 +5213,39 @@ function Library:CreateWindow(...)
                 Size = UDim2.new(1, 0, 0, 0);
                 ZIndex = 2;
                 Parent = Info.Side == 1 and (Info.Left or ActiveLeft) or (Info.Right or ActiveRight);
+                Corner = Library.CornerRadius.Section;
             });
             Library:AddToRegistry(BoxOuter, {
                 BackgroundColor3 = 'BackgroundColor';
                 BorderColor3 = 'OutlineColor';
             });
             local BoxInner = Library:Create('Frame', {
-                BackgroundColor3 = Library.BackgroundColor;
+                BackgroundColor3 = Library.SectionColor;
                 BorderColor3 = Color3.new(0, 0, 0);
                 Size = UDim2.new(1, -2, 1, -2);
                 Position = UDim2.new(0, 1, 0, 1);
                 ZIndex = 4;
                 Parent = BoxOuter;
+                Corner = Library.CornerRadius.Section - 1;
             });
             Library:AddToRegistry(BoxInner, {
-                BackgroundColor3 = 'BackgroundColor';
+                BackgroundColor3 = 'SectionColor';
+            });
+            local TabboxDivider = Library:Create('Frame', {
+                BackgroundColor3 = Library.OutlineColor;
+                BorderSizePixel = 0;
+                Position = UDim2.new(0, 8, 0, 23);
+                Size = UDim2.new(1, -16, 0, 1);
+                ZIndex = 5;
+                Parent = BoxInner;
+            });
+            Library:AddToRegistry(TabboxDivider, {
+                BackgroundColor3 = 'OutlineColor';
             });
             local TabboxButtons = Library:Create('Frame', {
                 BackgroundTransparency = 1;
-                Position = UDim2.new(0, 0, 0, 1);
-                Size = UDim2.new(1, 0, 0, 18);
+                Position = UDim2.new(0, 4, 0, 1);
+                Size = UDim2.new(1, -8, 0, 22);
                 ZIndex = 5;
                 Parent = BoxInner;
             });
@@ -5074,14 +5258,15 @@ function Library:CreateWindow(...)
             function Tabbox:AddTab(Name)
                 local Tab = {};
                 local Button = Library:Create('Frame', {
-                    BackgroundColor3 = Library.MainColor;
+                    BackgroundColor3 = Library.SectionColor;
                     BorderColor3 = Color3.new(0, 0, 0);
                     Size = UDim2.new(0.5, 0, 1, 0);
                     ZIndex = 6;
                     Parent = TabboxButtons;
+                    Corner = Library.CornerRadius.Tab - 2;
                 });
                 Library:AddToRegistry(Button, {
-                    BackgroundColor3 = 'MainColor';
+                    BackgroundColor3 = 'SectionColor';
                 });
                 local TabHighlight = Library:Create('Frame', {
                     BackgroundColor3 = Library.AccentColor;
@@ -5116,8 +5301,8 @@ function Library:CreateWindow(...)
                 });
                 local Container = Library:Create('Frame', {
                     BackgroundTransparency = 1;
-                    Position = UDim2.new(0, 4, 0, 20);
-                    Size = UDim2.new(1, -4, 1, -20);
+                    Position = UDim2.new(0, 4, 0, 27);
+                    Size = UDim2.new(1, -8, 1, -27);
                     ZIndex = 1;
                     Visible = false;
                     Parent = BoxInner;
@@ -5136,8 +5321,8 @@ function Library:CreateWindow(...)
                     Block.Visible = true;
                     TabHighlight.Visible = true;
 
-                    Button.BackgroundColor3 = Library.BackgroundColor;
-                    Library.RegistryMap[Button].Properties.BackgroundColor3 = 'BackgroundColor';
+                    Button.BackgroundColor3 = Library.SelectedColor;
+                    Library.RegistryMap[Button].Properties.BackgroundColor3 = 'SelectedColor';
 
                     Tab:Resize();
                 end;
@@ -5146,8 +5331,8 @@ function Library:CreateWindow(...)
                     Block.Visible = false;
                     TabHighlight.Visible = false;
 
-                    Button.BackgroundColor3 = Library.MainColor;
-                    Library.RegistryMap[Button].Properties.BackgroundColor3 = 'MainColor';
+                    Button.BackgroundColor3 = Library.SectionColor;
+                    Library.RegistryMap[Button].Properties.BackgroundColor3 = 'SectionColor';
                 end;
                 function Tab:Resize()
                     local TabCount = 0;
@@ -5173,7 +5358,7 @@ function Library:CreateWindow(...)
                         end;
                     end;
 
-                    BoxOuter.Size = UDim2.new(1, 0, 0, 20 + Size + 2 + 2);
+                    BoxOuter.Size = UDim2.new(1, 0, 0, 27 + Size + 4);
                 end;
                 Button.InputBegan:Connect(function(Input)
                     if (Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) and not Library:MouseIsOverOpenedFrame() then
@@ -5520,5 +5705,568 @@ if InputService.TouchEnabled then
         UpdateLockButton()
     end
 end
+
+Library.Flags = Library.Flags or {};
+Library.FlagSetters = Library.FlagSetters or {};
+
+local ArcaneCounter = 0;
+local function ArcaneId(Name)
+    ArcaneCounter = ArcaneCounter + 1;
+    return string.format('%s_%d', tostring(Name or 'arcane'), ArcaneCounter);
+end;
+
+function Library:SetFlag(Flag, Value)
+    if Flag == nil or Flag == '' then
+        return;
+    end;
+
+    Library.Flags[Flag] = Value;
+end;
+
+function Library:GetFlag(Flag)
+    return Library.Flags[Flag];
+end;
+
+function Library:Notification(Config)
+    if type(Config) == 'string' then
+        Library:Notify(Config, 5);
+        return Config;
+    end;
+
+    Config = Config or {};
+
+    local Name = Config.Name or Config.Title;
+    local Description = Config.Description or Config.Text;
+    local Text;
+
+    if Name and Description then
+        Text = tostring(Name) .. '  |  ' .. tostring(Description);
+    else
+        Text = tostring(Name or Description or 'Notification');
+    end;
+
+    Library:Notify(Text, Config.Duration or 5);
+    return Text;
+end;
+
+local function ArcaneBind(Info, Element, Setter)
+    local Flag = Info.Flag or Info.Name;
+    if Flag == nil then
+        return Element;
+    end;
+
+    Library.Flags[Flag] = Element.Value;
+    Library.FlagSetters[Flag] = Setter;
+
+    Element.Changed = function(Value)
+        Library.Flags[Flag] = Value;
+        Library:SafeCallback(Info.Callback, Value);
+    end;
+
+    Element.Set = function(_, Value)
+        Setter(Value);
+    end;
+
+    Element.Get = function()
+        return Element.Value;
+    end;
+
+    return Element;
+end;
+
+local function BuildSection(Groupbox)
+    local Section = {
+        Groupbox = Groupbox;
+    };
+
+    function Section:Toggle(Info)
+        Info = Info or {};
+        local Name = Info.Name or Info.Text or 'Toggle';
+        local Idx = Info.Flag or ArcaneId(Name);
+        local Toggle = Groupbox:AddToggle(Idx, {
+            Text = Name;
+            Default = Info.Default;
+            Tooltip = Info.Tooltip;
+            DisabledTooltip = Info.DisabledTooltip;
+            Disabled = Info.Disabled;
+            Visible = Info.Visible;
+            Risky = Info.Risky;
+        });
+
+        return ArcaneBind(Info, Toggle, function(Value)
+            Toggle:SetValue(Value);
+        end);
+    end;
+
+    function Section:Slider(Info)
+        Info = Info or {};
+        local Name = Info.Name or Info.Text or 'Slider';
+        local Idx = Info.Flag or ArcaneId(Name);
+        local Slider = Groupbox:AddSlider(Idx, {
+            Text = Name;
+            Min = Info.Min or 0;
+            Max = Info.Max or 100;
+            Default = Info.Default or 0;
+            Rounding = Info.Decimals or Info.Rounding or 1;
+            Suffix = Info.Suffix;
+            Tooltip = Info.Tooltip;
+            DisabledTooltip = Info.DisabledTooltip;
+            Disabled = Info.Disabled;
+            Visible = Info.Visible;
+        });
+
+        return ArcaneBind(Info, Slider, function(Value)
+            Slider:SetValue(Value);
+        end);
+    end;
+
+    function Section:Dropdown(Info)
+        Info = Info or {};
+        local Name = Info.Name or Info.Text or 'Dropdown';
+        local Idx = Info.Flag or ArcaneId(Name);
+        local Dropdown = Groupbox:AddDropdown(Idx, {
+            Text = Name;
+            Values = Info.Items or Info.Values or {};
+            Default = Info.Default;
+            Multi = Info.Multi;
+            Searchable = Info.SearchBarEnabled or Info.Searchable;
+            AllowNull = Info.AllowNull == true or Info.Default == nil;
+            MaxVisibleDropdownItems = Info.MaxVisible;
+            Tooltip = Info.Tooltip;
+            DisabledTooltip = Info.DisabledTooltip;
+            Disabled = Info.Disabled;
+            Visible = Info.Visible;
+        });
+
+        return ArcaneBind(Info, Dropdown, function(Value)
+            Dropdown:SetValue(Value);
+        end);
+    end;
+
+    function Section:Button(Info)
+        Info = Info or {};
+
+        local Button = Groupbox:AddButton({
+            Text = Info.Name or Info.Text or 'Button';
+            Func = Info.Callback or function() end;
+            Tooltip = Info.Tooltip;
+            DisabledTooltip = Info.DisabledTooltip;
+            DoubleClick = Info.DoubleClick;
+            Disabled = Info.Disabled;
+            Visible = Info.Visible;
+        });
+
+        return Button;
+    end;
+
+    function Section:Textbox(Info)
+        Info = Info or {};
+        local Name = Info.Name or Info.Text or 'Textbox';
+        local Idx = Info.Flag or ArcaneId(Name);
+        local Textbox = Groupbox:AddInput(Idx, {
+            Text = Name;
+            Placeholder = Info.Placeholder;
+            Default = Info.Default;
+            Numeric = Info.Numeric;
+            Finished = Info.Finished;
+            Tooltip = Info.Tooltip;
+            DisabledTooltip = Info.DisabledTooltip;
+            Disabled = Info.Disabled;
+            Visible = Info.Visible;
+        });
+
+        return ArcaneBind(Info, Textbox, function(Value)
+            Textbox:SetValue(tostring(Value));
+        end);
+    end;
+
+    function Section:Colorpicker(Info)
+        Info = Info or {};
+        local Name = Info.Name or Info.Text or 'Color';
+        local Idx = Info.Flag or ArcaneId(Name);
+        local Colorpicker = Groupbox:AddLabel(Name):AddColorPicker(Idx, {
+            Default = Info.Default or Color3.fromRGB(255, 255, 255);
+            Tooltip = Info.Tooltip;
+            Transparency = Info.Transparency;
+        });
+
+        return ArcaneBind(Info, Colorpicker, function(Value)
+            Colorpicker:SetValueRGB(Value);
+        end);
+    end;
+
+    function Section:Keybind(Info)
+        Info = Info or {};
+        local Name = Info.Name or Info.Text or 'Keybind';
+        local Idx = Info.Flag or ArcaneId(Name);
+        local Keybind = Groupbox:AddKeyPicker(Idx, {
+            Text = Name;
+            Default = Info.Default or 'RightShift';
+            Mode = Info.Mode or 'Toggle';
+            Modes = Info.Modes;
+            SyncToggleState = Info.SyncToggleState;
+            Tooltip = Info.Tooltip;
+            Visible = Info.Visible;
+        });
+
+        local Flag = Info.Flag or Name;
+        Library.Flags[Flag] = Keybind.Value;
+        Library.FlagSetters[Flag] = function(Value)
+            pcall(function()
+                Keybind:SetValue(Value);
+            end);
+        end;
+
+        return Keybind;
+    end;
+
+    function Section:Label(Text)
+        if type(Text) == 'table' then
+            Text = Text.Name or Text.Text;
+        end;
+
+        return Groupbox:AddLabel(Text or '');
+    end;
+
+    function Section:Paragraph(Text)
+        if type(Text) == 'table' then
+            Text = Text.Name or Text.Text;
+        end;
+
+        return Groupbox:AddLabel(Text or '', true);
+    end;
+
+    function Section:Divider()
+        return Groupbox:AddDivider();
+    end;
+
+    function Section:Blank(Size)
+        return Groupbox:AddBlank(Size or 4);
+    end;
+
+    function Section:Config()
+        local Folder = Library.ConfigFolder or 'sillyUISettings/configs';
+        local Http = game:GetService('HttpService');
+        local HasFilesystem = type(isfolder) == 'function'
+            and type(makefolder) == 'function'
+            and type(listfiles) == 'function'
+            and type(isfile) == 'function'
+            and type(writefile) == 'function';
+
+        local function EnsureFolder()
+            if not HasFilesystem then
+                return false;
+            end;
+
+            pcall(function()
+                if not isfolder(Library.Directory or 'sillyUISettings') then
+                    makefolder(Library.Directory or 'sillyUISettings');
+                end;
+
+                if not isfolder(Folder) then
+                    makefolder(Folder);
+                end;
+            end);
+
+            return true;
+        end;
+
+        local function ListConfigs()
+            local List = {};
+            if not EnsureFolder() then
+                return List;
+            end;
+
+            local Success, Files = pcall(listfiles, Folder);
+            if Success and type(Files) == 'table' then
+                for _, File in next, Files do
+                    local Name = File:match('([^/\\]+)%.json$');
+                    if Name then
+                        table.insert(List, Name);
+                    end;
+                end;
+            end;
+
+            table.sort(List);
+            return List;
+        end;
+
+        local function Serialize()
+            local Data = {};
+            for Flag, Value in next, Library.Flags do
+                if typeof(Value) == 'Color3' then
+                    Data[Flag] = { __color = Value:ToHex() };
+                elseif type(Value) == 'table' then
+                    local Items = {};
+                    for Key, Enabled in next, Value do
+                        if Enabled then
+                            table.insert(Items, Key);
+                        end;
+                    end;
+                    Data[Flag] = { __multi = Items };
+                else
+                    Data[Flag] = Value;
+                end;
+            end;
+
+            return Http:JSONEncode(Data);
+        end;
+
+        local function Apply(Data)
+            for Flag, Value in next, Data do
+                local Setter = Library.FlagSetters[Flag];
+                if Setter then
+                    if type(Value) == 'table' and Value.__color then
+                        pcall(Setter, Color3.fromHex(Value.__color));
+                    elseif type(Value) == 'table' and Value.__multi then
+                        local Map = {};
+                        for _, Key in next, Value.__multi do
+                            Map[Key] = true;
+                        end;
+                        pcall(Setter, Map);
+                    else
+                        pcall(Setter, Value);
+                    end;
+                end;
+            end;
+        end;
+
+        local NameInput = Section:Textbox({ Name = 'Config name', Placeholder = 'my config', Flag = 'ArcaneConfigName' });
+        local ConfigList = Section:Dropdown({ Name = 'Configs', Items = ListConfigs(), Flag = 'ArcaneConfigList', AllowNull = true });
+
+        local function ConfigName()
+            local Value = tostring(NameInput.Value or ''):gsub('^%s+', ''):gsub('%s+$', '');
+            if Value == '' then
+                local Selected = ConfigList.Value;
+                if type(Selected) == 'string' then
+                    Value = Selected;
+                end;
+            end;
+
+            return Value;
+        end;
+
+        local function Refresh()
+            ConfigList:SetValues(ListConfigs());
+        end;
+
+        Section:Button({
+            Name = 'Save config';
+            Callback = function()
+                local Name = ConfigName();
+                if Name == '' then
+                    return Library:Notify('config name is empty', 3);
+                end;
+
+                if not EnsureFolder() then
+                    return Library:Notify('executor has no filesystem', 3);
+                end;
+
+                local Success, Err = pcall(writefile, Folder .. '/' .. Name .. '.json', Serialize());
+                if Success then
+                    Library:Notify('saved config ' .. Name, 3);
+                else
+                    Library:Notify(tostring(Err), 4);
+                end;
+
+                Refresh();
+            end;
+        });
+
+        Section:Button({
+            Name = 'Load config';
+            Callback = function()
+                local Name = ConfigName();
+                if Name == '' then
+                    return Library:Notify('config name is empty', 3);
+                end;
+
+                local Success, Content = pcall(readfile, Folder .. '/' .. Name .. '.json');
+                if not Success or type(Content) ~= 'string' then
+                    return Library:Notify('config not found', 3);
+                end;
+
+                local Decoded, Data = pcall(function()
+                    return Http:JSONDecode(Content);
+                end);
+
+                if Decoded and type(Data) == 'table' then
+                    Apply(Data);
+                    Library:Notify('loaded config ' .. Name, 3);
+                end;
+            end;
+        });
+
+        Section:Button({
+            Name = 'Delete config';
+            Callback = function()
+                local Name = ConfigName();
+                if Name == '' then
+                    return;
+                end;
+
+                if type(delfile) == 'function' then
+                    pcall(delfile, Folder .. '/' .. Name .. '.json');
+                end;
+
+                Refresh();
+            end;
+        });
+
+        Section:Button({ Name = 'Refresh configs', Callback = Refresh });
+
+        return Section;
+    end;
+
+    function Section:Theming()
+        Section:Dropdown({
+            Name = 'Theme';
+            Items = Library:GetThemeList();
+            Default = Library.CurrentTheme;
+            Flag = 'ArcaneTheme';
+            Callback = function(Name)
+                if Name then
+                    Library:SetTheme(Name);
+                end;
+            end;
+        });
+
+        Section:Colorpicker({
+            Name = 'Accent';
+            Default = Library.AccentColor;
+            Flag = 'ArcaneAccent';
+            Callback = function(Color)
+                Library.AccentColor = Color;
+                Library.Theme.Accent = Color;
+                Library:DeriveTheme();
+                Library.AccentColorDark = Library:GetDarkerColor(Color);
+                Library:UpdateColorsUsingRegistry();
+            end;
+        });
+
+        return Section;
+    end;
+
+    return Section;
+end;
+
+local function BuildSubPage(SubTab, Name, Page)
+    local SubPage = {
+        Tab = SubTab;
+        Name = Name;
+        Page = Page;
+    };
+
+    function SubPage:Section(Info)
+        Info = Info or {};
+        local SectionName = Info.Name or Info.Title or 'Section';
+        local Groupbox = Info.Side == 2 and SubTab:AddRightGroupbox(SectionName) or SubTab:AddLeftGroupbox(SectionName);
+        return BuildSection(Groupbox);
+    end;
+
+    function SubPage:Select()
+        SubTab:Show();
+    end;
+
+    return SubPage;
+end;
+
+local function BuildPage(Tab, Name)
+    local Page = {
+        Tab = Tab;
+        Name = Name;
+        SubPages = {};
+    };
+
+    function Page:SubPage(Info)
+        Info = Info or {};
+        local SubName = Info.Name or Info.Title or 'SubPage';
+        local Sub = BuildSubPage(Tab:AddSubTab(SubName), SubName, Page);
+        Page.SubPages[SubName] = Sub;
+        return Sub;
+    end;
+
+    function Page:Section(Info)
+        Info = Info or {};
+        local SectionName = Info.Name or Info.Title or 'Section';
+        local Groupbox = Info.Side == 2 and Tab:AddRightGroupbox(SectionName) or Tab:AddLeftGroupbox(SectionName);
+        return BuildSection(Groupbox);
+    end;
+
+    function Page:Select()
+        Tab:ShowTab();
+    end;
+
+    return Page;
+end;
+
+function Library:Window(Config)
+    Config = Config or {};
+
+    local Suffix = Config.Suffix;
+    if Suffix == nil then
+        Suffix = false;
+    end;
+
+    local Win = Library:CreateWindow({
+        Title = Config.Name or Config.Title or 'Arcane';
+        Suffix = Suffix;
+        Center = Config.Center ~= false;
+        AutoShow = Config.AutoShow ~= false;
+        Size = Config.Size;
+        Position = Config.Position;
+        Resizable = Config.Resizable ~= false;
+        ShowCustomCursor = Config.ShowCustomCursor;
+        UnlockMouseWhileOpen = Config.UnlockMouseWhileOpen;
+        TabPadding = Config.TabPadding;
+        MenuFadeTime = Config.MenuFadeTime;
+    });
+
+    local ArcaneWindow = {
+        Window = Win;
+        Pages = {};
+        Config = Config;
+    };
+
+    function ArcaneWindow:Page(Info)
+        Info = Info or {};
+        local Name = Info.Name or Info.Title or 'Page';
+        local Page = BuildPage(Win:AddTab(Name), Name);
+        ArcaneWindow.Pages[Name] = Page;
+        return Page;
+    end;
+
+    function ArcaneWindow:Watermark(Info)
+        if type(Info) == 'table' then
+            Info = Info.Title or Info.Text or Info.Name or '';
+        end;
+
+        Library:SetWatermark(tostring(Info or ''));
+        Library:SetWatermarkVisibility(true);
+        return ArcaneWindow;
+    end;
+
+    function ArcaneWindow:SetOpen(Visible)
+        Win:SetVisible(Visible);
+    end;
+
+    function ArcaneWindow:Toggle()
+        Win:Toggle();
+    end;
+
+    function ArcaneWindow:Close()
+        Win:SetVisible(false);
+    end;
+
+    function ArcaneWindow:Notify(Info)
+        return Library:Notification(Info);
+    end;
+
+    function ArcaneWindow:Unload()
+        Library:Unload();
+    end;
+
+    return ArcaneWindow;
+end;
 
 return Library

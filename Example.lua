@@ -13,7 +13,7 @@ local repo = "https://raw.githubusercontent.com/sickletone/hgjsvdnbdsnvxhdvsgsvd
 -- Change this namespace to run this fork beside another copy of the library.
 -- Use "silly" if you need the legacy getgenv().Library/Options/Toggles globals.
 local NAMESPACE = "silly-fork"
-local Library = loadstring(game:HttpGet(repo .. "Main.lua"))(NAMESPACE)
+local Library = loadstring(game:HttpGet(repo .. "Library.lua"))(NAMESPACE)
 local ThemeHelper = loadstring(game:HttpGet(repo .. "addons/ThemeHelper.lua"))()
 local SaveHelper = loadstring(game:HttpGet(repo .. "addons/SaveHelper.lua"))()
 
