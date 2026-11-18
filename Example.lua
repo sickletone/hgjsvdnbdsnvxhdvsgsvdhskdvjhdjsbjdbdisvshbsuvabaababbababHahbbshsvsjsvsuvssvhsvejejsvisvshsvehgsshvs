@@ -3,7 +3,6 @@ local Arcane = loadstring(game:HttpGet(repo .. "Library.lua"))()
 
 local Window = Arcane:Window({
     Name = "ARCANE",
-    User = game.Players.LocalPlayer.Name,
     Logo = "97741915311873"
 })
 

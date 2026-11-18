@@ -3,6 +3,12 @@ if getgenv().Arcane and getgenv().Arcane.Unload then
 end
 
 local Library = { } do
+    Library.MobileWidth = 330
+    Library.MobileHeight = 520
+    Library.MobileTopOffset = 64
+    Library.ResizeMinWidth = 320
+    Library.ResizeMinHeight = 280
+
     local Players = game:GetService("Players")
     local UserInputService = game:GetService("UserInputService")
     local RunService = game:GetService("RunService")
@@ -480,6 +486,56 @@ local Library = { } do
         end)
     end
 
+    Library.MakeResizable = function(Self, Handle, MinWidth, MinHeight)
+        local Gui = Self.Instance
+        Handle = Handle or Gui
+        MinWidth = MinWidth or 300
+        MinHeight = MinHeight or 260
+
+        local Dragging = false
+        local DragStart
+        local StartSize
+        local InputChanged
+
+        local function Set(Input)
+            local Scale = Library:GetScreenScale()
+            local Delta = (Input.Position - DragStart) / Scale
+            local Screen = Gui.Parent.AbsoluteSize / Scale
+            local Width = math.clamp(StartSize.X + Delta.X, MinWidth, math.max(MinWidth, Screen.X))
+            local Height = math.clamp(StartSize.Y + Delta.Y, MinHeight, math.max(MinHeight, Screen.Y))
+            local X = math.clamp(Gui.Position.X.Offset, 0, math.max(0, Screen.X - Width))
+            local Y = math.clamp(Gui.Position.Y.Offset, 0, math.max(0, Screen.Y - Height))
+            Gui.Size = UDim2.fromOffset(Width, Height)
+            Gui.Position = UDim2.fromOffset(X, Y)
+        end
+
+        Library:Connect(Handle.InputBegan, function(Input)
+            if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
+                Dragging = true
+                DragStart = Input.Position
+                StartSize = Gui.AbsoluteSize / Library:GetScreenScale()
+
+                if InputChanged then return end
+
+                InputChanged = Input.Changed:Connect(function()
+                    if Input.UserInputState == Enum.UserInputState.End then
+                        Dragging = false
+                        InputChanged:Disconnect()
+                        InputChanged = nil
+                    end
+                end)
+            end
+        end)
+
+        Library:Connect(UserInputService.InputChanged, function(Input)
+            if Input.UserInputType == Enum.UserInputType.MouseMovement or Input.UserInputType == Enum.UserInputType.Touch then
+                if Dragging then
+                    Set(Input)
+                end
+            end
+        end)
+    end
+
     Library.IsMouseOverFrame = function(Self)
         local Object = Self.Instance
         local Position = Vector2.new(Mouse.X, Mouse.Y)
@@ -584,12 +640,15 @@ local Library = { } do
 
         if IsMobile and workspace.CurrentCamera then
             local Viewport = workspace.CurrentCamera.ViewportSize
-            Scale = math.clamp(math.min((Viewport.X * 0.94) / 526, (Viewport.Y * 0.94) / 515), 0.4, 1)
+            Scale = math.clamp(math.min((Viewport.X * 0.94) / Library.MobileWidth, (Viewport.Y * 0.94 - Library.MobileTopOffset) / Library.MobileHeight), 0.4, 1)
         end
 
         Library.UIScale.Instance.Scale = Scale
 
         for _, Window in Library.Windows do
+            if IsMobile and Window.Items and Window.Items.MainFrame then
+                Window.Items.MainFrame.Instance.Size = UDim2.new(0, Library.MobileWidth, 0, Library.MobileHeight)
+            end
             if Window.Center then Window:Center() end
         end
     end
@@ -599,6 +658,12 @@ local Library = { } do
         task.wait()
         UpdateScale()
     end)
+
+    Library.SetMobileSize = function(Self, Width, Height)
+        Library.MobileWidth = Width or Library.MobileWidth
+        Library.MobileHeight = Height or Library.MobileHeight
+        UpdateScale()
+    end
 
     Library.Notification = function(Self, Params)
         Params = Params or { }
@@ -856,7 +921,6 @@ local Library = { } do
 
         local Window = {
             Name = Params.Name or Params.name or "ARCANE",
-            User = Params.User or Params.user or LocalPlayer.Name,
             Logo = Params.Logo or Params.logo or "72939878637463",
             IsOpen = true,
             Pages = { },
@@ -867,13 +931,16 @@ local Library = { } do
 
         local Scale = Library:GetScreenScale()
         local Viewport = workspace.CurrentCamera.ViewportSize
+        local Width = IsMobile and (Params.MobileWidth or Params.mobilewidth or Library.MobileWidth) or (Params.Width or Params.width or 526)
+        local Height = IsMobile and (Params.MobileHeight or Params.mobileheight or Library.MobileHeight) or (Params.Height or Params.height or 515)
+        local StartY = IsMobile and Library.MobileTopOffset or (Viewport.Y / (2 * Scale) - Height / 2)
 
         Items.MainFrame = Library:Create("Frame", {
             Parent = Library.Holder.Instance,
             Name = "\0",
             AnchorPoint = Vector2.new(0, 0),
-            Position = UDim2.fromOffset(Viewport.X / (2 * Scale) - 263, Viewport.Y / (2 * Scale) - 258),
-            Size = UDim2.new(0, 526, 0, 515),
+            Position = UDim2.fromOffset(Viewport.X / (2 * Scale) - Width / 2, StartY),
+            Size = UDim2.new(0, Width, 0, Height),
             BorderSizePixel = 0,
             BackgroundColor3 = Library.Theme.Background
         }):AddToTheme({ BackgroundColor3 = "Background" })
@@ -898,6 +965,36 @@ local Library = { } do
 
         Items.MainFrame:MakeDraggable(Items.TopBar.Instance)
 
+        Items.ResizeGrip = Library:Create("TextButton", {
+            Parent = Items.MainFrame.Instance,
+            Name = "\0",
+            Text = "",
+            AutoButtonColor = false,
+            AnchorPoint = Vector2.new(1, 1),
+            Position = UDim2.new(1, 0, 1, 0),
+            Size = UDim2.new(0, 22, 0, 22),
+            BackgroundTransparency = 1,
+            BorderSizePixel = 0,
+            ZIndex = 10
+        })
+
+        for Index = 1, 3 do
+            local Bar = Library:Create("Frame", {
+                Parent = Items.ResizeGrip.Instance,
+                Name = "\0",
+                AnchorPoint = Vector2.new(1, 1),
+                Position = UDim2.new(1, -3 - Index * 4, 1, -3),
+                Size = UDim2.new(0, 2, 0, 7 + Index * 2),
+                Rotation = 45,
+                ZIndex = 10,
+                BorderSizePixel = 0,
+                BackgroundColor3 = Library.Theme.DimIcon
+            }):AddToTheme({ BackgroundColor3 = "DimIcon" })
+            Library:Create("UICorner", { Parent = Bar.Instance, CornerRadius = UDim.new(1, 0) })
+        end
+
+        Items.MainFrame:MakeResizable(Items.ResizeGrip.Instance, Library.ResizeMinWidth, Library.ResizeMinHeight)
+
         Items.Logo = Library:Create("ImageLabel", {
             Parent = Items.TopBar.Instance,
             Name = "\0",
@@ -921,21 +1018,6 @@ local Library = { } do
             TextXAlignment = Enum.TextXAlignment.Left,
             BorderSizePixel = 0
         }):AddToTheme({ TextColor3 = "Accent" })
-
-        Items.User = Library:Create("TextLabel", {
-            Parent = Items.TopBar.Instance,
-            Name = "\0",
-            FontFace = Library.Font,
-            TextColor3 = Library.Theme.DimText,
-            Text = Window.User,
-            TextSize = 14,
-            BackgroundTransparency = 1,
-            AnchorPoint = Vector2.new(1, 0),
-            Position = UDim2.new(1, -12, 0, 0),
-            Size = UDim2.new(0, 157, 1, 0),
-            TextXAlignment = Enum.TextXAlignment.Right,
-            BorderSizePixel = 0
-        }):AddToTheme({ TextColor3 = "DimText" })
 
         Items.Line = Library:Create("Frame", {
             Parent = Items.MainFrame.Instance,
@@ -1094,7 +1176,9 @@ local Library = { } do
         function Window:Center()
             local CScale = Library:GetScreenScale()
             local Vp = workspace.CurrentCamera.ViewportSize
-            Items.MainFrame.Instance.Position = UDim2.fromOffset(Vp.X / (2 * CScale) - 263, Vp.Y / (2 * CScale) - 258)
+            local Size = Items.MainFrame.Instance.AbsoluteSize / CScale
+            local Y = IsMobile and Library.MobileTopOffset or (Vp.Y / (2 * CScale) - Size.Y / 2)
+            Items.MainFrame.Instance.Position = UDim2.fromOffset(Vp.X / (2 * CScale) - Size.X / 2, Y)
         end
 
         function Window:Watermark(Params)
@@ -1530,50 +1614,35 @@ local Library = { } do
             BorderSizePixel = 0
         })
 
-        Items.Left = Library:Create("ScrollingFrame", {
-            Parent = Items.Content.Instance,
-            Name = "\0",
-            BackgroundTransparency = 1,
-            ScrollBarImageTransparency = 1,
-            ScrollBarThickness = 0,
-            Selectable = false,
-            Active = true,
-            AutomaticCanvasSize = Enum.AutomaticSize.Y,
-            CanvasSize = UDim2.new(0, 0, 0, 0),
-            Position = UDim2.new(0, 0, 0, 0),
-            Size = UDim2.new(0.5, -8, 1, 0),
-            ZIndex = 2,
-            BorderSizePixel = 0
-        })
+        local function MakeColumn(AnchorX)
+            local Column = Library:Create("ScrollingFrame", {
+                Parent = Items.Content.Instance,
+                Name = "\0",
+                BackgroundTransparency = 1,
+                ScrollBarImageTransparency = 1,
+                ScrollBarThickness = 0,
+                Selectable = false,
+                Active = true,
+                AutomaticCanvasSize = Enum.AutomaticSize.Y,
+                CanvasSize = UDim2.new(0, 0, 0, 0),
+                AnchorPoint = Vector2.new(AnchorX, 0),
+                Position = UDim2.new(AnchorX, 0, 0, 0),
+                Size = IsMobile and UDim2.new(1, 0, 1, 0) or UDim2.new(0.5, -8, 1, 0),
+                ZIndex = 2,
+                BorderSizePixel = 0
+            })
 
-        Library:Create("UIListLayout", {
-            Parent = Items.Left.Instance,
-            Padding = UDim.new(0, 14),
-            SortOrder = Enum.SortOrder.LayoutOrder
-        })
+            Library:Create("UIListLayout", {
+                Parent = Column.Instance,
+                Padding = UDim.new(0, 14),
+                SortOrder = Enum.SortOrder.LayoutOrder
+            })
 
-        Items.Right = Library:Create("ScrollingFrame", {
-            Parent = Items.Content.Instance,
-            Name = "\0",
-            BackgroundTransparency = 1,
-            ScrollBarImageTransparency = 1,
-            ScrollBarThickness = 0,
-            Selectable = false,
-            Active = true,
-            AutomaticCanvasSize = Enum.AutomaticSize.Y,
-            CanvasSize = UDim2.new(0, 0, 0, 0),
-            AnchorPoint = Vector2.new(1, 0),
-            Position = UDim2.new(1, 0, 0, 0),
-            Size = UDim2.new(0.5, -8, 1, 0),
-            ZIndex = 2,
-            BorderSizePixel = 0
-        })
+            return Column
+        end
 
-        Library:Create("UIListLayout", {
-            Parent = Items.Right.Instance,
-            Padding = UDim.new(0, 14),
-            SortOrder = Enum.SortOrder.LayoutOrder
-        })
+        Items.Left = MakeColumn(0)
+        Items.Right = IsMobile and Items.Left or MakeColumn(1)
 
         SubPage.ColumnsData[1] = Items.Left
         SubPage.ColumnsData[2] = Items.Right
